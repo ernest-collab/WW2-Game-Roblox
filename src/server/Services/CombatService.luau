@@ -1686,18 +1686,18 @@ end
 -------------------------------------------------------------------------------------------------
 
 function CombatService:Init()
-	projectileFolder = workspace:FindFirstChild("CombatProjectiles") :: Folder
-	if not projectileFolder then
-		projectileFolder = Instance.new("Folder")
-		projectileFolder.Name = "CombatProjectiles"
-		projectileFolder.Parent = workspace
+	local function ensureFolder(name: string): Folder
+		local existing = workspace:FindFirstChild(name)
+		if existing and existing:IsA("Folder") then
+			return existing
+		end
+		local f = Instance.new("Folder")
+		f.Name = name
+		f.Parent = workspace
+		return f
 	end
-	smokeFolder = workspace:FindFirstChild("SmokeScreens") :: Folder
-	if not smokeFolder then
-		smokeFolder = Instance.new("Folder")
-		smokeFolder.Name = "SmokeScreens"
-		smokeFolder.Parent = workspace
-	end
+	projectileFolder = ensureFolder("CombatProjectiles")
+	smokeFolder = ensureFolder("SmokeScreens")
 	overlapParams.FilterDescendantsInstances = { projectileFolder, smokeFolder }
 
 	-- Client -> server

@@ -212,7 +212,7 @@ function Common.track(kit: Kit, side: number, x: number, groundY: number, t: Tra
 	local bottomR = Vector3.new(x, groundY + belt / 2, last + r * 0.4)
 	kit:box(
 		"TrackTop",
-		Vector3.new(tw, belt, (zIdl - zSpr) * side * 0 + math.abs(zIdl - zSpr)),
+		Vector3.new(tw, belt, math.abs(zIdl - zSpr)),
 		CFrame.new(x, yTop - belt / 2, (zSpr + zIdl) / 2),
 		P.track,
 		{ material = Enum.Material.DiamondPlate }

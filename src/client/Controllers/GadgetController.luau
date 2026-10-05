@@ -58,7 +58,7 @@ local VEHICLE_TAG = Constants.TAGS.Vehicle
 
 local gadgetRemote: RemoteEvent? = nil
 local holding: { [string]: boolean } = {}
-local holdThreads: { [string]: thread } = {}
+local holdThreads: { [string]: any } = {}
 local lastSpot = 0
 local progressOwner: string? = nil
 

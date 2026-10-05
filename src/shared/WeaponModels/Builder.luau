@@ -275,6 +275,19 @@ function Builder.finish(self: Builder): Model
 	if m:GetAttribute("Hold") == nil then
 		self:meta("Rifle", 0.7)
 	end
+	-- Handle-space Z extents (RearZ = butt end, FrontZ = muzzle end) for third-person holds.
+	local rear, front = 0, 0
+	for _, d in m:GetChildren() do
+		if d:IsA("BasePart") and d ~= self.handle then
+			local cf, s = d.CFrame, d.Size
+			local half = 0.5
+				* (math.abs(cf.XVector.Z) * s.X + math.abs(cf.YVector.Z) * s.Y + math.abs(cf.ZVector.Z) * s.Z)
+			rear = math.max(rear, cf.Position.Z + half)
+			front = math.min(front, cf.Position.Z - half)
+		end
+	end
+	m:SetAttribute("RearZ", rear)
+	m:SetAttribute("FrontZ", front)
 	-- Guarantee the contract attachments exist even if a builder forgot one.
 	for _, name in { "Muzzle", "Grip", "Support", "Sight", "Eject" } do
 		if not self.handle:FindFirstChild(name) then

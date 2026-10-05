@@ -601,7 +601,7 @@ local function killCharacter(character: Model, outOfBounds: boolean)
 	end
 end
 
-local function checkBounds(now: number)
+local function checkBounds()
 	local mapInfo = currentMapInfo()
 	local bounds = type(mapInfo) == "table" and mapInfo.bounds
 	if type(bounds) ~= "table" or typeof(bounds.center) ~= "Vector3" or typeof(bounds.size) ~= "Vector3" then
@@ -638,7 +638,6 @@ local function checkBounds(now: number)
 			end
 		end
 	end
-	local _ = now
 end
 
 local function autoDeployTick()
@@ -742,7 +741,7 @@ function SpawnService:Start()
 	task.spawn(function()
 		while true do
 			task.wait(0.5)
-			local ok, err = pcall(checkBounds, os.clock())
+			local ok, err = pcall(checkBounds)
 			if not ok then
 				warn(`[SpawnService] bounds check failed: {err}`)
 			end

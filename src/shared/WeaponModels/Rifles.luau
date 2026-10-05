@@ -168,7 +168,7 @@ function Rifles.BoltRifle(b: B, withScope: boolean?)
 		eye = 0.3
 	end
 
-	b:standard(V3(0, barrelY, zM), V3(0, -0.11, 0.32), V3(0, -0.07, -0.3 - fl * 0.42), sightPos, V3(0.09, 0.12, 0.0))
+	b:standard(V3(0, barrelY, zM), V3(0, -0.11, 0.32), V3(0, -0.07, -0.3 - fl * 0.24), sightPos, V3(0.09, 0.12, 0.0))
 	b:meta("Rifle", eye, V3(0, -1, 0), "bolt")
 end
 
@@ -247,7 +247,7 @@ function Rifles.SemiRifle(b: B, withScope: boolean?)
 		sightPos = V3(0, y, 0.55)
 		eye = 0.3
 	end
-	b:standard(V3(0, barrelY, zM), V3(0, -0.11, 0.34), V3(0, -0.07, -0.35 - fl * 0.4), sightPos, V3(0.09, 0.13, -0.15))
+	b:standard(V3(0, barrelY, zM), V3(0, -0.11, 0.34), V3(0, -0.07, -0.35 - fl * 0.22), sightPos, V3(0.09, 0.13, -0.15))
 	b:meta("Rifle", eye, V3(0, -1, 0), withScope and "bolt" or "slide")
 end
 
@@ -271,12 +271,12 @@ function Rifles.Shotgun(b: B)
 	b:cylZ("MagTube", tubeLen, 0.085, CF(0, -0.03, -0.38 - tubeLen / 2), metal, M.Metal)
 	b:box("TubeClamp", V3(0.09, 0.2, 0.05), CF(0, 0.03, -0.38 - tubeLen + 0.03), p.dark, M.Metal)
 
-	local pump = b:box("Pump", V3(0.15, 0.14, 0.5), CF(0, -0.035, -0.9), wood, M.Wood)
+	local pump = b:box("Pump", V3(0.15, 0.14, 0.5), CF(0, -0.035, -0.75), wood, M.Wood)
 	for i = 1, 3 do
 		b:box(
 			`PumpRib{i}`,
 			V3(0.155, 0.02, 0.03),
-			CF(0, -0.04, -0.75 - i * 0.09),
+			CF(0, -0.04, -0.6 - i * 0.09),
 			Builder.shade(wood, 0.6),
 			M.Wood,
 			pump
@@ -305,7 +305,7 @@ function Rifles.Shotgun(b: B)
 		end
 	end
 
-	b:standard(V3(0, barrelY, zM), V3(0, -0.11, 0.36), V3(0, -0.09, -0.9), V3(0, 0.17, 0.05), V3(0.09, 0.08, -0.1))
+	b:standard(V3(0, barrelY, zM), V3(0, -0.11, 0.36), V3(0, -0.09, -0.75), V3(0, 0.17, 0.05), V3(0.09, 0.08, -0.1))
 	b:meta("Rifle", 0.55, V3(0, -1, 0), "pump")
 end
 
@@ -349,7 +349,7 @@ function Rifles.AssaultRifle(b: B)
 
 	local magOut = Parts.magazine(b, p.magazine == "box" and "curved" or p.magazine, CF(0, -0.1, -0.42), 0.55)
 
-	b:standard(V3(0, barrelY, zM), V3(0, -0.2, 0.2), V3(0, -0.04, -0.98), V3(0, 0.2, -0.45), V3(0.09, 0.1, -0.2))
+	b:standard(V3(0, barrelY, zM), V3(0, -0.2, 0.2), V3(0, -0.04, -0.8), V3(0, 0.2, -0.45), V3(0.09, 0.1, -0.2))
 	b:meta("Rifle", 0.5, magOut, "slide")
 end
 

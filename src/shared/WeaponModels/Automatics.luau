@@ -225,7 +225,7 @@ function Automatics.LMG(b: B)
 	local barrelY = 0.06
 	local magOut: Vector3
 	local sight = V3(0, 0.2, 0.25)
-	local support = V3(0, -0.06, -0.95)
+	local support = V3(0, -0.06, -0.78)
 	local grip = V3(0, -0.12, 0.42)
 
 	if v == "bren" or v == "type96" then

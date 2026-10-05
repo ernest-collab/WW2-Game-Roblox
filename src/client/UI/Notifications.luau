@@ -12,6 +12,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameState = require(Shared.GameState)
@@ -261,6 +262,19 @@ function Notifications:SetHudActive(active: boolean)
 end
 
 function Notifications:_checkBounds()
+	-- Authoritative: SpawnService's `OutOfBounds` player attribute (server-time deadline, 0 = inside).
+	local deadline = LOCAL_PLAYER:GetAttribute("OutOfBounds")
+	if type(deadline) == "number" then
+		if self.hudActive and deadline > 0 then
+			local left = math.max(0, deadline - Workspace:GetServerTimeNow())
+			self.oobCount.Text = tostring(math.ceil(left))
+			self.oob.Visible = true
+		else
+			self.oob.Visible = false
+		end
+		return
+	end
+	-- Fallback: client-side estimate from the map bounds.
 	local info = self.hudActive and Data.mapInfo() or nil
 	local root = info and Data.rootPart(LOCAL_PLAYER)
 	if not info or not root or GameState.get("Phase") ~= "InRound" then
