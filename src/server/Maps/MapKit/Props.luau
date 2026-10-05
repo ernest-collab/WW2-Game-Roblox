@@ -325,11 +325,9 @@ function Props.HayBales(ctx: any, at: any, opts: { [string]: any }?): Model
 			Name = "HayBale",
 			Parent = model,
 			Size = Vector3.new(4, 2.2, 2.6),
-			CFrame = base * CFrame.new((i - n / 2) * 3.4 * 0.75 + layer * 1.5, 1.1 + layer * 2.2, ctx:Range(-0.4, 0.4)) * CFrame.Angles(
-				0,
-				ctx:Range(-0.15, 0.15),
-				0
-			),
+			CFrame = base
+				* CFrame.new((i - n / 2) * 3.4 * 0.75 + layer * 1.5, 1.1 + layer * 2.2, ctx:Range(-0.4, 0.4))
+				* CFrame.Angles(0, ctx:Range(-0.15, 0.15), 0),
 			Material = M.Grass,
 			Color = rgb(176, 152, 92),
 			Jitter = 0.06,
@@ -400,7 +398,8 @@ function Props.Fence(ctx: any, points: { any }, opts: { [string]: any }?): Model
 			Name = "Post",
 			Parent = model,
 			Size = Vector3.new(0.5, 4.2, 0.5),
-			CFrame = CFrame.new(x, y + 1.6, z) * CFrame.Angles(ctx:Range(-0.08, 0.08), ctx:Range(0, 3), ctx:Range(-0.08, 0.08)),
+			CFrame = CFrame.new(x, y + 1.6, z)
+				* CFrame.Angles(ctx:Range(-0.08, 0.08), ctx:Range(0, 3), ctx:Range(-0.08, 0.08)),
 			Material = M.Wood,
 			Color = DARK_WOOD,
 			CastShadow = false,
@@ -761,7 +760,10 @@ function Props.Tent(ctx: any, at: any, opts: { [string]: any }?): Model
 			Parent = model,
 			Shape = "Wedge",
 			Size = Vector3.new(0.2, size.Y, half),
-			CFrame = Core.WedgeCF((base * CFrame.new(sx * half / 2, size.Y / 2, size.Z / 2)).Position, base:VectorToWorldSpace(Vector3.new(-sx, 0, 0))),
+			CFrame = Core.WedgeCF(
+				(base * CFrame.new(sx * half / 2, size.Y / 2, size.Z / 2)).Position,
+				base:VectorToWorldSpace(Vector3.new(-sx, 0, 0))
+			),
 			Material = M.Fabric,
 			Color = canvas,
 			CastShadow = false,
@@ -825,10 +827,18 @@ function Props.Wreck(ctx: any, at: any, opts: { [string]: any }?): Model
 		end
 		if not o.noTurret then
 			local yaw = ctx:Range(-1.2, 1.2)
-			local turretOff = if ctx:Chance(0.3) then CFrame.new(ctx:Range(-6, 6), 0.8, ctx:Range(6, 10)) else CFrame.new(0, 0, 0)
+			local turretOff = if ctx:Chance(0.3)
+				then CFrame.new(ctx:Range(-6, 6), 0.8, ctx:Range(6, 10))
+				else CFrame.new(0, 0, 0)
 			local tcf = CFrame.new(0, 5.4, 1) * turretOff * CFrame.Angles(0, yaw, 0)
 			box("Turret", Vector3.new(6.4, 2.6, 7), tcf)
-			box("Gun", Vector3.new(0.6, 0.6, 9), tcf * CFrame.new(0, 0.2, -7.4) * CFrame.Angles(ctx:Range(-0.2, 0.05), 0, 0), rgb(40, 38, 36), M.Metal)
+			box(
+				"Gun",
+				Vector3.new(0.6, 0.6, 9),
+				tcf * CFrame.new(0, 0.2, -7.4) * CFrame.Angles(ctx:Range(-0.2, 0.05), 0, 0),
+				rgb(40, 38, 36),
+				M.Metal
+			)
 		end
 	elseif kind == "truck" or kind == "halftrack" then
 		box("Chassis", Vector3.new(6.4, 1.2, 18), CFrame.new(0, 2, 0), rgb(40, 38, 36))
@@ -862,7 +872,11 @@ function Props.Wreck(ctx: any, at: any, opts: { [string]: any }?): Model
 		box("Cabin", Vector3.new(5, 2, 6), CFrame.new(0, 4, 1))
 	end
 	if o.burning then
-		Props.Fire(ctx, (base * CFrame.new(0, 3, 0)).Position, { size = 4, snap = false, parent = model, light = false })
+		Props.Fire(
+			ctx,
+			(base * CFrame.new(0, 3, 0)).Position,
+			{ size = 4, snap = false, parent = model, light = false }
+		)
 	end
 	return model
 end
@@ -963,7 +977,8 @@ function Props.Debris(ctx: any, pos: Vector3, opts: { [string]: any }?): Instanc
 			Name = "Debris",
 			Parent = parent,
 			Size = size,
-			CFrame = CFrame.new(x, y + size.Y * 0.3, z) * CFrame.Angles(ctx:Range(-0.5, 0.5), ctx:Range(0, 6.28), ctx:Range(-0.5, 0.5)),
+			CFrame = CFrame.new(x, y + size.Y * 0.3, z)
+				* CFrame.Angles(ctx:Range(-0.5, 0.5), ctx:Range(0, 6.28), ctx:Range(-0.5, 0.5)),
 			Material = mat,
 			Color = color,
 			CastShadow = false,

@@ -126,7 +126,13 @@ end
 	Calls fn(cf, index) every `spacing` studs; cf sits on the ground facing along the path.
 	opts: offset (sideways studs, + = right), jitter (random sideways/along studs), startAt, endAt
 ]]
-function Layout.AlongPath(ctx: any, points: { any }, spacing: number, fn: (CFrame, number) -> (), opts: { [string]: any }?)
+function Layout.AlongPath(
+	ctx: any,
+	points: { any },
+	spacing: number,
+	fn: (CFrame, number) -> (),
+	opts: { [string]: any }?
+)
 	local o = opts or {}
 	local p = Geo.path(points)
 	local d = o.startAt or spacing / 2
@@ -246,16 +252,26 @@ function Layout.SpawnArea(ctx: any, cf: CFrame, side: string, opts: { [string]: 
 	for _, x in { -width / 3, -width / 6, width / 6, width / 3 } do
 		local w = base * Vector3.new(x, 0, -bermD + 1)
 		local y = ctx:SurfaceY(w.X, w.Z)
-		Fort.Sandbags(ctx, CFrame.new(w.X, y - 0.6, w.Z) * (base - base.Position), { length = 12, courses = 2, parent = model, snap = false })
+		Fort.Sandbags(
+			ctx,
+			CFrame.new(w.X, y - 0.6, w.Z) * (base - base.Position),
+			{ length = 12, courses = 2, parent = model, snap = false }
+		)
 	end
 
 	-- Tents and supplies
 	local tentSpots = { { -30, 18 }, { 0, 30 }, { 30, 18 } }
 	for i, t in tentSpots do
-		Props.Tent(ctx, base * CFrame.new(t[1], 0, t[2]) * CFrame.Angles(0, if i == 2 then 0 else math.rad(t[1] > 0 and -20 or 20), 0), {
-			parent = model,
-			size = Vector3.new(10, 7, 14),
-		})
+		Props.Tent(
+			ctx,
+			base
+				* CFrame.new(t[1], 0, t[2])
+				* CFrame.Angles(0, if i == 2 then 0 else math.rad(t[1] > 0 and -20 or 20), 0),
+			{
+				parent = model,
+				size = Vector3.new(10, 7, 14),
+			}
+		)
 	end
 	Props.AmmoCache(ctx, base * CFrame.new(-16, 0, -18), { parent = model })
 	Props.AmmoCache(ctx, base * CFrame.new(16, 0, -18), { parent = model })
@@ -275,7 +291,10 @@ function Layout.SpawnArea(ctx: any, cf: CFrame, side: string, opts: { [string]: 
 		local cz = -4 + math.floor(i / cols) * 9 + ctx:Range(-1.5, 1.5)
 		local w = base * Vector3.new(cx, 0, cz)
 		local y = ctx:SurfaceY(w.X, w.Z)
-		table.insert(spawns, CFrame.lookAt(Vector3.new(w.X, y + 3, w.Z), Vector3.new(w.X, y + 3, w.Z) + base.LookVector))
+		table.insert(
+			spawns,
+			CFrame.lookAt(Vector3.new(w.X, y + 3, w.Z), Vector3.new(w.X, y + 3, w.Z) + base.LookVector)
+		)
 	end
 
 	-- Vehicle parking on the flanks behind the berm gap
@@ -286,7 +305,10 @@ function Layout.SpawnArea(ctx: any, cf: CFrame, side: string, opts: { [string]: 
 		local row = math.floor(i / 2)
 		local w = base * Vector3.new(sideSign * (52 + row * 4), 0, -6 + row * 18)
 		local y = ctx:GroundY(w.X, w.Z)
-		table.insert(vehicles, CFrame.lookAt(Vector3.new(w.X, y + 2, w.Z), Vector3.new(w.X, y + 2, w.Z) + base.LookVector))
+		table.insert(
+			vehicles,
+			CFrame.lookAt(Vector3.new(w.X, y + 2, w.Z), Vector3.new(w.X, y + 2, w.Z) + base.LookVector)
+		)
 	end
 	return { spawns = spawns, vehicles = vehicles, model = model }
 end
@@ -304,7 +326,13 @@ spawnRay.IgnoreWater = true
 	Finds open ground around an objective (rejects roofs, walls, water); spawns face `pos`.
 	Call AFTER buildings/props are placed.
 ]]
-function Layout.ObjectiveSpawns(ctx: any, pos: Vector3, radius: number, count: number?, opts: { [string]: any }?): { CFrame }
+function Layout.ObjectiveSpawns(
+	ctx: any,
+	pos: Vector3,
+	radius: number,
+	count: number?,
+	opts: { [string]: any }?
+): { CFrame }
 	local o = opts or {}
 	local want = count or 6
 	local out = {}
@@ -371,7 +399,8 @@ function Layout.CapturePoint(ctx: any, def: { [string]: any })
 		radius = def.radius or 25,
 		order = def.order or 1,
 		initialOwner = def.initialOwner or "Neutral",
-		spawns = def.spawns or Layout.ObjectiveSpawns(ctx, Vector3.new(p.X, y, p.Z), def.radius or 25, def.spawnCount or 6),
+		spawns = def.spawns
+			or Layout.ObjectiveSpawns(ctx, Vector3.new(p.X, y, p.Z), def.radius or 25, def.spawnCount or 6),
 	}
 end
 

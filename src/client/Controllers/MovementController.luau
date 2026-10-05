@@ -372,10 +372,17 @@ local function update(dt: number)
 	else
 		speed = Constants.WALK_SPEED
 	end
-	speed *= classMultiplier() * weaponMultiplier()
-	if aiming and not sprinting then
-		speed *= Constants.ADS_SPEED_MULT
+	-- weapon + ADS multiplier: prefer WeaponController (knows the locally equipped weapon at once)
+	local weaponCtl = getController("WeaponController")
+	local wm: number? = nil
+	if weaponCtl and type(weaponCtl.GetMoveSpeedMultiplier) == "function" then
+		local ok, m = pcall(weaponCtl.GetMoveSpeedMultiplier)
+		wm = if ok and type(m) == "number" then m else nil
 	end
+	if wm == nil then
+		wm = weaponMultiplier() * (if aiming and not sprinting then Constants.ADS_SPEED_MULT else 1)
+	end
+	speed *= classMultiplier() * (wm :: number)
 	if slideTimer > 0 then
 		slideTimer -= dt
 		local a = math.clamp(slideTimer / SLIDE_TIME, 0, 1)

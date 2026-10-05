@@ -24,7 +24,15 @@ local LEAF_GREENS = { rgb(70, 92, 48), rgb(62, 84, 44), rgb(82, 100, 52), rgb(58
 local PINE_GREENS = { rgb(44, 64, 44), rgb(38, 58, 40), rgb(50, 70, 46) }
 local BARK = rgb(72, 58, 44)
 
-local function trunk(ctx: any, model: Model, base: Vector3, height: number, radius: number, color: Color3?, lean: number?): CFrame
+local function trunk(
+	ctx: any,
+	model: Model,
+	base: Vector3,
+	height: number,
+	radius: number,
+	color: Color3?,
+	lean: number?
+): CFrame
 	local tilt = CFrame.Angles(ctx:Range(-1, 1) * (lean or 0.05), ctx:Range(0, 6.28), ctx:Range(-1, 1) * (lean or 0.05))
 	local cf = CFrame.new(base) * tilt
 	ctx:Part({
@@ -79,12 +87,23 @@ function Nature.Tree(ctx: any, pos: Vector3, kind: string?, scale: number?, pare
 		local n = if k == "Apple" then 2 else 3
 		blob(ctx, model, top * CFrame.new(0, crown * 0.15, 0), Vector3.new(crown, crown * 0.8, crown), green)
 		for _ = 2, n do
-			local off = Vector3.new(ctx:Range(-0.35, 0.35) * crown, ctx:Range(-0.1, 0.3) * crown, ctx:Range(-0.35, 0.35) * crown)
+			local off = Vector3.new(
+				ctx:Range(-0.35, 0.35) * crown,
+				ctx:Range(-0.1, 0.3) * crown,
+				ctx:Range(-0.35, 0.35) * crown
+			)
 			local c = crown * ctx:Range(0.55, 0.75)
 			blob(ctx, model, top * CFrame.new(off), Vector3.new(c, c * 0.85, c), ctx:Jitter(green, 0.1))
 		end
 		if k == "Apple" and ctx:Chance(0.6) then
-			blob(ctx, model, top * CFrame.new(0, crown * 0.1, 0), Vector3.new(crown * 1.02, crown * 0.6, crown * 1.02), rgb(150, 60, 40), M.Grass)
+			blob(
+				ctx,
+				model,
+				top * CFrame.new(0, crown * 0.1, 0),
+				Vector3.new(crown * 1.02, crown * 0.6, crown * 1.02),
+				rgb(150, 60, 40),
+				M.Grass
+			)
 		end
 	elseif k == "Poplar" then
 		local top = trunk(ctx, model, base, 6 * s, 0.7 * s, BARK, 0.02)
@@ -99,7 +118,14 @@ function Nature.Tree(ctx: any, pos: Vector3, kind: string?, scale: number?, pare
 			local t = i / tiers
 			local w = (if k == "Pine" then 10 else 13) * s * (1 - t * 0.65)
 			local ty = startY + (h - startY) * t
-			blob(ctx, model, cf * CFrame.new(0, ty + w * 0.3, 0), Vector3.new(w, w * 0.9, w), ctx:Jitter(col, 0.06), M.Grass)
+			blob(
+				ctx,
+				model,
+				cf * CFrame.new(0, ty + w * 0.3, 0),
+				Vector3.new(w, w * 0.9, w),
+				ctx:Jitter(col, 0.06),
+				M.Grass
+			)
 		end
 	elseif k == "Palm" then
 		local h = 22 * s
@@ -124,7 +150,10 @@ function Nature.Tree(ctx: any, pos: Vector3, kind: string?, scale: number?, pare
 		end
 		for i = 0, 6 do
 			local a = i * math.pi * 2 / 7 + ctx:Range(-0.2, 0.2)
-			local frond = cf * CFrame.Angles(0, a, 0) * CFrame.Angles(math.rad(ctx:Range(15, 35)), 0, 0) * CFrame.new(0, 0, -5 * s)
+			local frond = cf
+				* CFrame.Angles(0, a, 0)
+				* CFrame.Angles(math.rad(ctx:Range(15, 35)), 0, 0)
+				* CFrame.new(0, 0, -5 * s)
 			ctx:Part({
 				Name = "Frond",
 				Parent = model,
@@ -149,7 +178,10 @@ function Nature.Tree(ctx: any, pos: Vector3, kind: string?, scale: number?, pare
 				Name = "Branch",
 				Parent = model,
 				Size = Vector3.new(0.4 * s, len, 0.4 * s),
-				CFrame = top * CFrame.new(0, yOff, 0) * CFrame.Angles(ctx:Range(0.5, 1.1), ctx:Range(0, 6.28), 0) * CFrame.new(0, len / 2, 0),
+				CFrame = top
+					* CFrame.new(0, yOff, 0)
+					* CFrame.Angles(ctx:Range(0.5, 1.1), ctx:Range(0, 6.28), 0)
+					* CFrame.new(0, len / 2, 0),
 				Material = M.Wood,
 				Color = col,
 				CastShadow = false,
@@ -168,7 +200,13 @@ function Nature.Bush(ctx: any, pos: Vector3, size: number?, parent: Instance?): 
 	local green = ctx:Pick(LEAF_GREENS)
 	blob(ctx, model, CFrame.new(pos.X, y + s * 0.3, pos.Z), Vector3.new(s, s * 0.75, s * 1.2), green)
 	if s > 5 and ctx:Chance(0.6) then
-		blob(ctx, model, CFrame.new(pos.X + s * 0.4, y + s * 0.2, pos.Z + ctx:Range(-1, 1)), Vector3.new(s * 0.7, s * 0.6, s * 0.7), ctx:Jitter(green, 0.1))
+		blob(
+			ctx,
+			model,
+			CFrame.new(pos.X + s * 0.4, y + s * 0.2, pos.Z + ctx:Range(-1, 1)),
+			Vector3.new(s * 0.7, s * 0.6, s * 0.7),
+			ctx:Jitter(green, 0.1)
+		)
 	end
 	return model
 end
@@ -179,7 +217,8 @@ end
 	Bocage hedges are thick: the hedge body blocks movement and bullets (only the crown blobs are
 	non-colliding). Use `gaps` to cut openings for lanes and field gates.
 	opts: height (9), width (5), bank (true), bankHeight (2.5), treeChance (0.12), gapChance (0.04),
-	      gaps = { {x, z, radius} } hard openings, minimap (true)
+	      gaps = { {x, z, radius} } hard openings, skip = function(x, z) -> boolean (e.g. near roads),
+	      minimap (true)
 ]]
 function Nature.Hedgerow(ctx: any, points: { any }, opts: { [string]: any }?): Model
 	local o = opts or {}
@@ -197,9 +236,6 @@ function Nature.Hedgerow(ctx: any, points: { any }, opts: { [string]: any }?): M
 		end
 		return false
 	end
-	if bankH > 0 then
-		Terrain.Berm(ctx, points, w + 4, bankH, o.bankMaterial or M.LeafyGrass)
-	end
 	local base = ctx:Pick(LEAF_GREENS):Lerp(rgb(40, 56, 34), 0.35)
 	for i = 1, #points - 1 do
 		local ax, az = Geo.xz(points[i])
@@ -211,8 +247,11 @@ function Nature.Hedgerow(ctx: any, points: { any }, opts: { [string]: any }?): M
 			local x0, z0 = Geo.lerp(ax, bx, t0), Geo.lerp(az, bz, t0)
 			local x1, z1 = Geo.lerp(ax, bx, t1), Geo.lerp(az, bz, t1)
 			local mx, mz = (x0 + x1) / 2, (z0 + z1) / 2
-			if inGap(mx, mz) or ctx:Chance(o.gapChance or 0.04) then
+			if inGap(mx, mz) or (o.skip and o.skip(mx, mz)) or ctx:Chance(o.gapChance or 0.04) then
 				continue
+			end
+			if bankH > 0 then
+				Terrain.Berm(ctx, { Vector3.new(x0, 0, z0), Vector3.new(x1, 0, z1) }, w + 4, bankH, o.bankMaterial or M.LeafyGrass)
 			end
 			local y = math.min(ctx:GroundY(x0, z0), ctx:GroundY(x1, z1)) + bankH * 0.6
 			local hh = h * ctx:Range(0.85, 1.15)
@@ -230,10 +269,22 @@ function Nature.Hedgerow(ctx: any, points: { any }, opts: { [string]: any }?): M
 			-- irregular crown blob
 			if ctx:Chance(0.7) then
 				local c = w * ctx:Range(1.1, 1.6)
-				blob(ctx, model, cf * CFrame.new(ctx:Range(-0.5, 0.5), hh / 2, ctx:Range(-3, 3)), Vector3.new(c, c * 0.7, len / steps * 0.8), ctx:Jitter(base, 0.15))
+				blob(
+					ctx,
+					model,
+					cf * CFrame.new(ctx:Range(-0.5, 0.5), hh / 2, ctx:Range(-3, 3)),
+					Vector3.new(c, c * 0.7, len / steps * 0.8),
+					ctx:Jitter(base, 0.15)
+				)
 			end
 			if ctx:Chance(o.treeChance or 0.12) then
-				Nature.Tree(ctx, Vector3.new(mx, 0, mz), ctx:Pick({ "Oak", "Oak", "Poplar" }), ctx:Range(0.9, 1.2), model)
+				Nature.Tree(
+					ctx,
+					Vector3.new(mx, 0, mz),
+					ctx:Pick({ "Oak", "Oak", "Poplar" }),
+					ctx:Range(0.9, 1.2),
+					model
+				)
 			end
 		end
 	end
@@ -265,7 +316,14 @@ function Nature.Forest(ctx: any, area: { [string]: any }, opts: { [string]: any 
 	if o.minimap ~= false then
 		if area.polygon then
 			local pth = Geo.path(area.polygon)
-			ctx:AddMinimap("forest", (pth.minX + pth.maxX) / 2, (pth.minZ + pth.maxZ) / 2, pth.maxX - pth.minX, pth.maxZ - pth.minZ, 0)
+			ctx:AddMinimap(
+				"forest",
+				(pth.minX + pth.maxX) / 2,
+				(pth.minZ + pth.maxZ) / 2,
+				pth.maxX - pth.minX,
+				pth.maxZ - pth.minZ,
+				0
+			)
 		else
 			ctx:AddMinimap("forest", area.center.X, area.center.Z, area.size.X, area.size.Y, area.rot or 0)
 		end
@@ -287,7 +345,12 @@ function Nature.Orchard(ctx: any, cf: CFrame, opts: { [string]: any }?): Model
 			if ctx:Chance(o.missing or 0.1) then
 				continue
 			end
-			local p = cf * Vector3.new((c - (cols + 1) / 2) * sp + ctx:Range(-1.5, 1.5), 0, (r - (rows + 1) / 2) * sp + ctx:Range(-1.5, 1.5))
+			local p = cf
+				* Vector3.new(
+					(c - (cols + 1) / 2) * sp + ctx:Range(-1.5, 1.5),
+					0,
+					(r - (rows + 1) / 2) * sp + ctx:Range(-1.5, 1.5)
+				)
 			Nature.Tree(ctx, p, o.kind or "Apple", ctx:Range(0.9, 1.15), model)
 		end
 	end

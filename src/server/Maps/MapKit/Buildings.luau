@@ -362,7 +362,9 @@ function Buildings.Wall(ctx: any, parent: Instance, cf: CFrame, length: number, 
 					Color = if op.fill == "pane"
 						then (if style then style.pane else rgb(36, 40, 44))
 						elseif isDoor then (if style then style.trimColor else rgb(70, 52, 36))
-						else (if style and style.shutterColors then ctx:Pick(style.shutterColors) else rgb(90, 76, 60)),
+						else (if style and style.shutterColors
+							then ctx:Pick(style.shutterColors)
+							else rgb(90, 76, 60)),
 					Destructible = true,
 					CastShadow = false,
 				})
@@ -418,7 +420,15 @@ end
 ---------------------------------------------------------------------------------------------------
 
 -- Returns the building CFrame at floor level and creates the foundation plinth.
-local function prepareSite(ctx: any, model: Model, cf: CFrame, w: number, d: number, opts: { [string]: any }, style: Style): CFrame
+local function prepareSite(
+	ctx: any,
+	model: Model,
+	cf: CFrame,
+	w: number,
+	d: number,
+	opts: { [string]: any },
+	style: Style
+): CFrame
 	local base = cf
 	if opts.snap ~= false then
 		local lo, hi = ctx:FootprintMinY(cf, w, d)
@@ -448,7 +458,15 @@ end
 	Gable roof over a span. `cf` = centre of the wall tops; ridge runs along local X.
 	lengthX = ridge length (wall span along X), spanZ = span across the ridge.
 ]]
-local function gableRoof(ctx: any, parent: Instance, cf: CFrame, lengthX: number, spanZ: number, style: Style, opts: { [string]: any })
+local function gableRoof(
+	ctx: any,
+	parent: Instance,
+	cf: CFrame,
+	lengthX: number,
+	spanZ: number,
+	style: Style,
+	opts: { [string]: any }
+)
 	local pitch = math.rad(opts.pitch or style.pitch)
 	local oh = opts.overhang or 1.2
 	local t = opts.wallT or 1
@@ -543,7 +561,15 @@ local function gableRoof(ctx: any, parent: Instance, cf: CFrame, lengthX: number
 end
 
 -- Flat roof with a parapet. cf = centre of wall tops.
-local function flatRoof(ctx: any, parent: Instance, cf: CFrame, w: number, d: number, style: Style, opts: { [string]: any })
+local function flatRoof(
+	ctx: any,
+	parent: Instance,
+	cf: CFrame,
+	w: number,
+	d: number,
+	style: Style,
+	opts: { [string]: any }
+)
 	local ruinField: RuinField? = opts.ruinField
 	local topY = opts.topY or 0
 	local stripW = 12
@@ -568,12 +594,14 @@ local function flatRoof(ctx: any, parent: Instance, cf: CFrame, w: number, d: nu
 	if opts.parapet ~= false then
 		local ph = opts.parapetHeight or 1.6
 		local t = 0.8
-		for _, e in {
-			{ CFrame.new(0, 0, -d / 2 + t / 2), w },
-			{ CFrame.new(0, 0, d / 2 - t / 2) * CFrame.Angles(0, math.pi, 0), w },
-			{ CFrame.new(-w / 2 + t / 2, 0, 0) * CFrame.Angles(0, math.pi / 2, 0), d - 2 * t },
-			{ CFrame.new(w / 2 - t / 2, 0, 0) * CFrame.Angles(0, -math.pi / 2, 0), d - 2 * t },
-		} do
+		for _, e in
+			{
+				{ CFrame.new(0, 0, -d / 2 + t / 2), w },
+				{ CFrame.new(0, 0, d / 2 - t / 2) * CFrame.Angles(0, math.pi, 0), w },
+				{ CFrame.new(-w / 2 + t / 2, 0, 0) * CFrame.Angles(0, math.pi / 2, 0), d - 2 * t },
+				{ CFrame.new(w / 2 - t / 2, 0, 0) * CFrame.Angles(0, -math.pi / 2, 0), d - 2 * t },
+			}
+		do
 			local wcf = cf * e[1]
 			Buildings.Wall(ctx, parent, wcf, e[2], ph, {
 				thickness = t,
@@ -786,7 +814,16 @@ end
 -- Interior clutter & ruin dressing
 ---------------------------------------------------------------------------------------------------
 
-local function furnish(ctx: any, model: Model, base: CFrame, w: number, d: number, floors: number, floorH: number, ruinField: RuinField?)
+local function furnish(
+	ctx: any,
+	model: Model,
+	base: CFrame,
+	w: number,
+	d: number,
+	floors: number,
+	floorH: number,
+	ruinField: RuinField?
+)
 	local wood = rgb(92, 70, 48)
 	for f = 1, floors do
 		local y = (f - 1) * floorH
@@ -848,7 +885,16 @@ local function furnish(ctx: any, model: Model, base: CFrame, w: number, d: numbe
 	end
 end
 
-local function ruinDressing(ctx: any, model: Model, base: CFrame, w: number, d: number, ruin: number, style: Style, totalH: number)
+local function ruinDressing(
+	ctx: any,
+	model: Model,
+	base: CFrame,
+	w: number,
+	d: number,
+	ruin: number,
+	style: Style,
+	totalH: number
+)
 	if ruin <= 0.15 then
 		return
 	end
@@ -887,7 +933,16 @@ local function ruinDressing(ctx: any, model: Model, base: CFrame, w: number, d: 
 	end
 end
 
-local function chimneyOnRoof(ctx: any, model: Model, base: CFrame, x: number, z: number, fromY: number, toY: number, style: Style)
+local function chimneyOnRoof(
+	ctx: any,
+	model: Model,
+	base: CFrame,
+	x: number,
+	z: number,
+	fromY: number,
+	toY: number,
+	style: Style
+)
 	ctx:Part({
 		Name = "Chimney",
 		Parent = model,
@@ -1171,7 +1226,15 @@ end
 ---------------------------------------------------------------------------------------------------
 
 -- Pyramid spire from 4 corner wedges. cf = centre of the base square.
-local function spire(ctx: any, parent: Instance, cf: CFrame, size: number, height: number, mat: Enum.Material, color: Color3)
+local function spire(
+	ctx: any,
+	parent: Instance,
+	cf: CFrame,
+	size: number,
+	height: number,
+	mat: Enum.Material,
+	color: Color3
+)
 	local half = size / 2
 	for i = 0, 3 do
 		local rot = CFrame.Angles(0, i * math.pi / 2, 0)
@@ -1575,11 +1638,9 @@ function Buildings.FactoryHall(ctx: any, cf: CFrame, opts: { [string]: any }?): 
 					Name = "FallenTruss",
 					Parent = model,
 					Size = Vector3.new(1, 1.6, d * ctx:Range(0.5, 0.9)),
-					CFrame = base * CFrame.new(x + ctx:Range(-3, 3), ctx:Range(1, 6), 0) * CFrame.Angles(
-						ctx:Range(-0.35, 0.35),
-						ctx:Range(-0.3, 0.3),
-						ctx:Range(-0.4, 0.4)
-					),
+					CFrame = base
+						* CFrame.new(x + ctx:Range(-3, 3), ctx:Range(1, 6), 0)
+						* CFrame.Angles(ctx:Range(-0.35, 0.35), ctx:Range(-0.3, 0.3), ctx:Range(-0.4, 0.4)),
 					Material = M.CorrodedMetal,
 					Color = metal,
 				})
@@ -2039,7 +2100,13 @@ function Buildings.RuinedWall(ctx: any, cf: CFrame, length: number, height: numb
 				else nil,
 		})
 	end
-	Terrain.RubbleMound(ctx, (base * CFrame.new(ctx:Range(-length / 3, length / 3), 0, ctx:Range(-5, 5))).Position, ctx:Range(3, 6), 2, style.rubble)
+	Terrain.RubbleMound(
+		ctx,
+		(base * CFrame.new(ctx:Range(-length / 3, length / 3), 0, ctx:Range(-5, 5))).Position,
+		ctx:Range(3, 6),
+		2,
+		style.rubble
+	)
 	return model
 end
 

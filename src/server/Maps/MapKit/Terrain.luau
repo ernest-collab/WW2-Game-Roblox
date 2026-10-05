@@ -71,7 +71,10 @@ end
 local INF = math.huge
 
 function HeightModel:_add(fn, minX, maxX, minZ, maxZ)
-	table.insert(self.ops, { fn = fn, minX = minX or -INF, maxX = maxX or INF, minZ = minZ or -INF, maxZ = maxZ or INF })
+	table.insert(
+		self.ops,
+		{ fn = fn, minX = minX or -INF, maxX = maxX or INF, minZ = minZ or -INF, maxZ = maxZ or INF }
+	)
 end
 
 -- Evaluate the first `count` operations (used by ops that need the terrain "so far").
@@ -249,7 +252,15 @@ function HeightModel:Flatten(cx: number, cz: number, radius: number, y: number?,
 end
 
 -- Flatten a rotated rectangle (rot = yaw degrees) to height y (nil = current centre height).
-function HeightModel:FlattenRect(cx: number, cz: number, sx: number, sz: number, rot: number?, y: number?, blend: number?)
+function HeightModel:FlattenRect(
+	cx: number,
+	cz: number,
+	sx: number,
+	sz: number,
+	rot: number?,
+	y: number?,
+	blend: number?
+)
 	local b = blend or 20
 	local target = y or self:Get(cx, cz)
 	local reach = math.sqrt(sx * sx + sz * sz) / 2 + b
@@ -336,7 +347,9 @@ export type MaterialModel = typeof(setmetatable(
 	opts.base       surface material where no rule matches (default Grass)
 	opts.subsurface material deeper than ~5 studs below the surface (default Ground) — exposed by trenches/craters
 ]]
-function Terrain.MaterialModel(opts: { base: Enum.Material?, subsurface: Enum.Material?, seed: number? }?): MaterialModel
+function Terrain.MaterialModel(
+	opts: { base: Enum.Material?, subsurface: Enum.Material?, seed: number? }?
+): MaterialModel
 	local o = opts or {}
 	return setmetatable({
 		base = o.base or M.Grass,
@@ -368,7 +381,15 @@ function MaterialModel:Patches(material: Enum.Material, scale: number, threshold
 end
 
 -- Rotated rectangle. `edge` adds noisy, natural borders of that many studs.
-function MaterialModel:Rect(cx: number, cz: number, sx: number, sz: number, rot: number?, material: Enum.Material, edge: number?)
+function MaterialModel:Rect(
+	cx: number,
+	cz: number,
+	sx: number,
+	sz: number,
+	rot: number?,
+	material: Enum.Material,
+	edge: number?
+)
 	local e = edge or 0
 	local seed = self.seed + #self.rules
 	local reach = math.sqrt(sx * sx + sz * sz) / 2 + e
@@ -437,7 +458,11 @@ function MaterialModel:Above(y: number, material: Enum.Material)
 	end)
 end
 
-function MaterialModel:Custom(material: Enum.Material, test: (number, number, number, number) -> boolean, box: { number }?)
+function MaterialModel:Custom(
+	material: Enum.Material,
+	test: (number, number, number, number) -> boolean,
+	box: { number }?
+)
 	local b = box or {}
 	return self:_add(material, test, b[1], b[2], b[3], b[4])
 end
@@ -621,7 +646,8 @@ end
 -- Repaint surface materials inside an oriented box.
 function Terrain.Paint(cf: CFrame, size: Vector3, material: Enum.Material, from: { Enum.Material }?)
 	local terrain = Workspace.Terrain
-	for _, src in from or NATURAL_SURFACES do
+	local sources: { Enum.Material } = from or NATURAL_SURFACES
+	for _, src in sources do
 		if src ~= material then
 			terrain:ReplaceMaterialInTransform(cf, size, src, material)
 		end
@@ -635,7 +661,10 @@ function Terrain.PaintPath(ctx: any, points: { any }, width: number, material: E
 		local bx, bz = Geo.xz(points[i + 1])
 		local a = Vector3.new(ax, ctx:GroundY(ax, az), az)
 		local b = Vector3.new(bx, ctx:GroundY(bx, bz), bz)
-		local flat = CFrame.lookAt(Vector3.new((ax + bx) / 2, (a.Y + b.Y) / 2, (az + bz) / 2), Vector3.new(bx, (a.Y + b.Y) / 2, bz))
+		local flat = CFrame.lookAt(
+			Vector3.new((ax + bx) / 2, (a.Y + b.Y) / 2, (az + bz) / 2),
+			Vector3.new(bx, (a.Y + b.Y) / 2, bz)
+		)
 		local len = Vector3.new(bx - ax, 0, bz - az).Magnitude
 		Terrain.Paint(flat, Vector3.new(width, math.abs(a.Y - b.Y) + 16, len + width * 0.5), material, from)
 		ctx:Step(2)

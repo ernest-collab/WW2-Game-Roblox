@@ -97,6 +97,9 @@ function VehicleModels.Build(vehicleId: string): Model
 	if not def.static and #info.points >= 3 then
 		Common.rig(kit, chassis, info.points, info.rideHeight, def.tracked)
 	end
+	chassis:SetAttribute("RideHeight", info.rideHeight) -- chassis centre height above ground
+	chassis:SetAttribute("HalfWidth", info.halfWidth)
+	chassis:SetAttribute("HalfLength", info.halfLength)
 	Common.exits(kit, chassis, info.halfWidth, info.halfLength, info.groundY)
 
 	-- Markings
