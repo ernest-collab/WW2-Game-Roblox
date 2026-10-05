@@ -251,7 +251,13 @@ function Nature.Hedgerow(ctx: any, points: { any }, opts: { [string]: any }?): M
 				continue
 			end
 			if bankH > 0 then
-				Terrain.Berm(ctx, { Vector3.new(x0, 0, z0), Vector3.new(x1, 0, z1) }, w + 4, bankH, o.bankMaterial or M.LeafyGrass)
+				Terrain.Berm(
+					ctx,
+					{ Vector3.new(x0, 0, z0), Vector3.new(x1, 0, z1) },
+					w + 4,
+					bankH,
+					o.bankMaterial or M.LeafyGrass
+				)
 			end
 			local y = math.min(ctx:GroundY(x0, z0), ctx:GroundY(x1, z1)) + bankH * 0.6
 			local hh = h * ctx:Range(0.85, 1.15)
@@ -298,7 +304,8 @@ end
 	Nature.Forest(ctx, area, opts) -> Model
 	area: { center = Vector3, size = Vector2, rot = degrees } (rectangle) or { polygon = {points} }
 	opts: kinds = {"Oak","Pine"} (weighted list), spacing (14), count (auto from area/spacing),
-	      bushes (0.5 = bushes per tree), avoid = { {x, z, r} }, scale (1), minimap (true)
+	      bushes (0.5 = bushes per tree), avoid = { {x, z, r} }, filter(x, z) -> boolean, scale (1),
+	      minimap (true)
 ]]
 function Nature.Forest(ctx: any, area: { [string]: any }, opts: { [string]: any }?): Model
 	local o = opts or {}
@@ -306,7 +313,7 @@ function Nature.Forest(ctx: any, area: { [string]: any }, opts: { [string]: any 
 	local model = ctx:Model(o.name or "Forest", o.parent or ctx:Folder("Nature"))
 	local kinds = o.kinds or { "Oak", "Oak", "Birch" }
 	local spacing = o.spacing or 14
-	local points = Layout.Scatter(ctx, area, { spacing = spacing, count = o.count, avoid = o.avoid })
+	local points = Layout.Scatter(ctx, area, { spacing = spacing, count = o.count, avoid = o.avoid, filter = o.filter })
 	for _, p in points do
 		Nature.Tree(ctx, p, ctx:Pick(kinds), o.scale, model)
 		if ctx:Chance(o.bushes or 0.5) then
