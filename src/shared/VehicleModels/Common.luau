@@ -166,14 +166,15 @@ export type TrackSpec = {
 	sprocketRear: boolean?,
 }
 
--- One track run on `side` (-1 left / +1 right), centred at x, on ground level groundY.
-function Common.track(kit: Kit, side: number, x: number, groundY: number, t: TrackSpec)
+-- One track run on `side` (-1 left / +1 right), centred at (x, zCenter) on ground level groundY.
+function Common.track(kit: Kit, side: number, x: number, groundY: number, t: TrackSpec, zCenter: number?)
 	local P = kit.palette
 	local tw, th, tl = t.width, t.height, t.length
 	local belt = 0.32
 	local rs = t.sprocketRadius or math.min(th * 0.32, 1.1)
 	local yTop = groundY + th
-	local zF, zR = -tl / 2, tl / 2
+	local zc = zCenter or 0
+	local zF, zR = zc - tl / 2, zc + tl / 2
 	local ySpr = yTop - rs
 	local r = t.wheelRadius
 	local yWheel = groundY + belt + r
@@ -236,7 +237,7 @@ function Common.track(kit: Kit, side: number, x: number, groundY: number, t: Tra
 		kit:box(
 			"Pannier",
 			Vector3.new(0.3, th * 0.62, tl - rs * 3),
-			CFrame.new(x + side * (tw / 2 + 0.05), groundY + th * 0.5, 0),
+			CFrame.new(x + side * (tw / 2 + 0.05), groundY + th * 0.5, zc),
 			P.base
 		)
 	elseif t.skirts then

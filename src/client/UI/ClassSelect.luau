@@ -143,7 +143,8 @@ function ClassSelect:_render()
 		local selected = id == self.selected
 		card.lock.Visible = not unlocked
 		card.marker.Visible = selected
-		card.name.TextColor3 = unlocked and (selected and Theme.Colors.Accent or Theme.Colors.Text) or Theme.Colors.TextDim
+		card.name.TextColor3 = unlocked and (selected and Theme.Colors.Accent or Theme.Colors.Text)
+			or Theme.Colors.TextDim
 		Theme.setButtonColor(card.button, selected and Theme.Colors.Olive or Theme.Colors.PanelLight)
 		card.button.BackgroundTransparency = unlocked and 0 or 0.45
 	end

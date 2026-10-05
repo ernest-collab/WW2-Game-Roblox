@@ -232,17 +232,15 @@ function Theme.label(props: { [string]: any }?): TextLabel
 	local kind = p.Kind or "body"
 	p.Kind = nil
 	if p.FontFace == nil then
-		p.FontFace = (
-			{
-				title = Theme.Fonts.Title,
-				heading = Theme.Fonts.Heading,
-				number = Theme.Fonts.Number,
-				body = Theme.Fonts.Body,
-				bold = Theme.Fonts.BodyBold,
-				type = Theme.Fonts.Type,
-				glyph = Theme.Fonts.Glyph,
-			}
-		)[kind] or Theme.Fonts.Body
+		p.FontFace = ({
+			title = Theme.Fonts.Title,
+			heading = Theme.Fonts.Heading,
+			number = Theme.Fonts.Number,
+			body = Theme.Fonts.Body,
+			bold = Theme.Fonts.BodyBold,
+			type = Theme.Fonts.Type,
+			glyph = Theme.Fonts.Glyph,
+		})[kind] or Theme.Fonts.Body
 	end
 	if p.BackgroundTransparency == nil then
 		p.BackgroundTransparency = 1
@@ -357,8 +355,11 @@ function Theme.tween(
 	style: Enum.EasingStyle?,
 	dir: Enum.EasingDirection?
 ): Tween
-	local tw =
-		TweenService:Create(inst, TweenInfo.new(time, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out), props)
+	local tw = TweenService:Create(
+		inst,
+		TweenInfo.new(time, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out),
+		props
+	)
 	tw:Play()
 	return tw
 end

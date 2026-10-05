@@ -203,7 +203,8 @@ function Data.mapInfo(): MapInfo?
 	if ok and type(decoded) == "table" and type(decoded.bounds) == "table" then
 		local b = decoded.bounds
 		b.cx, b.cy, b.cz = tonumber(b.cx) or 0, tonumber(b.cy) or 0, tonumber(b.cz) or 0
-		b.sx, b.sy, b.sz = math.max(tonumber(b.sx) or 1000, 1), tonumber(b.sy) or 200, math.max(tonumber(b.sz) or 1000, 1)
+		b.sx, b.sy, b.sz =
+			math.max(tonumber(b.sx) or 1000, 1), tonumber(b.sy) or 200, math.max(tonumber(b.sz) or 1000, 1)
 		decoded.objectives = type(decoded.objectives) == "table" and decoded.objectives or {}
 		decoded.minimap = type(decoded.minimap) == "table" and decoded.minimap or {}
 		decoded.hq = type(decoded.hq) == "table" and decoded.hq or {}

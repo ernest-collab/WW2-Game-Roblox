@@ -1177,6 +1177,11 @@ local function onReload(player: Player, payload: any)
 	if not st or type(weaponId) ~= "string" or st.weaponId ~= weaponId then
 		return
 	end
+	if payload.cancel == true then
+		-- Client cancelled (e.g. sprint). Rounds already inserted by a single-round reload are kept.
+		cancelReload(st, true)
+		return
+	end
 	if not startReload(st, weaponId) then
 		sendAmmo(st, weaponId)
 	end

@@ -368,7 +368,7 @@ function MapRenderer:Refresh()
 	self.blink = (os.clock() % 0.8) < 0.4
 	local mySide = Data.localSide()
 	local mySquad = LOCAL_PLAYER:GetAttribute("Squad") or 0
-	local counterRot = self.mode == "mini" and self.rotate and -(self.pivot.Rotation) or 0
+	local counterRot = self.mode == "mini" and self.rotate and -self.pivot.Rotation or 0
 
 	-- Objectives (hidden in modes without objectives)
 	local objFolder = GameState.folder():FindFirstChild("Objectives")

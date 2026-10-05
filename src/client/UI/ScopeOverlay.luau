@@ -82,7 +82,11 @@ function ScopeOverlay.new(ctx)
 	line({ AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromScale(0.5, 1), Size = UDim2.new(0, 5, 0.5, 0) })
 	line({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(0.5, 0), Size = UDim2.new(0, 1, 0.42, 0) })
 	-- Post tip
-	local tip = line({ AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(2, 10) })
+	local tip = line({
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(2, 10),
+	})
 	tip.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 
 	self.trove:Add(Bus.connect("ScopeChanged", function(isScoped: boolean, _weaponId: string?)

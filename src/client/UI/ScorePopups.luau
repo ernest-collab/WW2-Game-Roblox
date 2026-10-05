@@ -154,12 +154,8 @@ function ScorePopups:AddScore(reason: string, points: number)
 	end
 	line.serial = self.counter
 	line.label.LayoutOrder = -self.counter
-	line.label.Text = string.format(
-		'%s  <font color="#%s">+%d</font>',
-		string.upper(reason),
-		Theme.Colors.Accent:ToHex(),
-		points
-	)
+	line.label.Text =
+		string.format('%s  <font color="#%s">+%d</font>', string.upper(reason), Theme.Colors.Accent:ToHex(), points)
 	line.label.TextTransparency = 0
 	line.label.TextStrokeTransparency = 0.75
 	line.label.Visible = true

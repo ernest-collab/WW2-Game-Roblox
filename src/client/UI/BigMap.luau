@@ -84,7 +84,8 @@ function BigMap.new(ctx)
 	})
 	Theme.list(legend, Enum.FillDirection.Horizontal, 18, nil, Enum.VerticalAlignment.Center)
 	local function legendItem(color: Color3, text: string, diamond: boolean?): Frame
-		local item = Theme.new("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(120, 20), Parent = legend })
+		local item =
+			Theme.new("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(120, 20), Parent = legend })
 		local dot = Theme.new("Frame", {
 			BackgroundColor3 = color,
 			BorderSizePixel = 0,

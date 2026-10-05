@@ -331,7 +331,13 @@ function HUD:_buildSquad()
 		Size = UDim2.fromOffset(200, 120),
 		Parent = self.root,
 	})
-	Theme.list(panel, Enum.FillDirection.Vertical, 3, nil, touch and Enum.VerticalAlignment.Top or Enum.VerticalAlignment.Bottom)
+	Theme.list(
+		panel,
+		Enum.FillDirection.Vertical,
+		3,
+		nil,
+		touch and Enum.VerticalAlignment.Top or Enum.VerticalAlignment.Bottom
+	)
 	self.squadHeader = Theme.label({
 		Kind = "heading",
 		Text = "",
@@ -530,7 +536,12 @@ function HUD:_connect()
 		end
 		self.reloadBar.Visible = true
 		self.reloadFill.Size = UDim2.fromScale(0, 1)
-		local tw = Theme.tween(self.reloadFill, math.max(duration or 1, 0.05), { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Linear)
+		local tw = Theme.tween(
+			self.reloadFill,
+			math.max(duration or 1, 0.05),
+			{ Size = UDim2.fromScale(1, 1) },
+			Enum.EasingStyle.Linear
+		)
 		tw.Completed:Once(function()
 			self.reloadBar.Visible = false
 		end)

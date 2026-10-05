@@ -25,7 +25,8 @@ local PX_PER_DEG = 3.6 -- visible span = WIDTH / PX_PER_DEG ≈ 122°
 local HALF_SPAN = WIDTH / PX_PER_DEG / 2
 local MIN_DEG, MAX_DEG = -90, 450
 
-local CARDINALS = { [0] = "N", [45] = "NE", [90] = "E", [135] = "SE", [180] = "S", [225] = "SW", [270] = "W", [315] = "NW" }
+local CARDINALS =
+	{ [0] = "N", [45] = "NE", [90] = "E", [135] = "SE", [180] = "S", [225] = "SW", [270] = "W", [315] = "NW" }
 
 function Compass.new(ctx)
 	local self = setmetatable({}, Compass)
@@ -87,7 +88,8 @@ function Compass.new(ctx)
 				Kind = cardinal and "title" or "number",
 				Text = cardinal or tostring(norm),
 				TextSize = cardinal and (#cardinal == 1 and 17 or 13) or 11,
-				TextColor3 = norm == 0 and Theme.Colors.Accent or (cardinal and Theme.Colors.Text or Theme.Colors.TextDim),
+				TextColor3 = norm == 0 and Theme.Colors.Accent
+					or (cardinal and Theme.Colors.Text or Theme.Colors.TextDim),
 				AnchorPoint = Vector2.new(0.5, 0),
 				Position = UDim2.fromOffset(x, 0),
 				Size = UDim2.fromOffset(30, 16),

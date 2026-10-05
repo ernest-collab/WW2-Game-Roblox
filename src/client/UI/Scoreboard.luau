@@ -244,7 +244,8 @@ end
 function Scoreboard:Refresh()
 	local map = Maps.byId[GameState.get("MapId") or ""]
 	local mode = GameModes.byId[GameState.get("ModeId") or ""]
-	self.title.Text = (map and string.upper(map.name) or "BATTLEFIELD") .. (mode and ("  ·  " .. string.upper(mode.name)) or "")
+	self.title.Text = (map and string.upper(map.name) or "BATTLEFIELD")
+		.. (mode and ("  ·  " .. string.upper(mode.name)) or "")
 	self.subtitle.Text = "TIME " .. Theme.formatTime(GameState.get("TimeLeft"))
 
 	local mySquad = LOCAL_PLAYER:GetAttribute("Squad") or 0
@@ -290,7 +291,8 @@ function Scoreboard:Refresh()
 			cells.score.Text = tostring(num(p, "Score"))
 			local isMe = p == LOCAL_PLAYER
 			local squadMate = not isMe and mySquad ~= 0 and squad == mySquad and side == mySide
-			cells.name.TextColor3 = isMe and Theme.Colors.Accent or (squadMate and Theme.Colors.Squad or Theme.Colors.Text)
+			cells.name.TextColor3 = isMe and Theme.Colors.Accent
+				or (squadMate and Theme.Colors.Squad or Theme.Colors.Text)
 			row.stroke.Transparency = isMe and 0 or 1
 			row.frame.BackgroundColor3 = isMe and Theme.Colors.OliveLight or Theme.Colors.Panel
 			local alive = p:GetAttribute("Alive") ~= false
