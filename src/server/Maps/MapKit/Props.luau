@@ -8,7 +8,7 @@
 	  FlagPole        capture-point flag (contains a BasePart named "Flag" — see ObjectiveService)
 	  Crate, CrateStack, AmmoCache, Barrel, BarrelGroup, Cart, Haystack, HayBales
 	  Fence, StoneWall, TelegraphLine, LampPost, Well, Bench, Tent, Wreck,
-	  Fire, RubblePile, Debris, StoneBridge, WoodBridge, Signpost, Fountain
+	  Fire, RubblePile, Debris, StoneBridge, WoodBridge, Signpost, Fountain, Railway
 ]]
 
 local Core = require(script.Parent.Core)
@@ -1126,6 +1126,72 @@ function Props.WoodBridge(ctx: any, a: Vector3, b: Vector3, opts: { [string]: an
 		})
 	end
 	ctx:AddMinimapCF("road", cf, width, len + 4)
+	return model
+end
+
+---------------------------------------------------------------------------------------------------
+-- Railway
+---------------------------------------------------------------------------------------------------
+
+--[[
+	Props.Railway(ctx, points, opts) -> Model — standard-gauge track following the terrain.
+	Two steel rails per ~24-stud piece plus sleepers every `sleeper` studs. Paint a ballast strip
+	(Slate/Ground) into the MaterialModel and/or raise it with HeightModel:Embankment first.
+	opts: gauge (4.8), sleeper (6), broken = { {x, z, r} } (no track inside these circles — shell damage)
+]]
+function Props.Railway(ctx: any, points: { any }, opts: { [string]: any }?): Model
+	local o = opts or {}
+	local model = ctx:Model("Railway", folder(ctx, o))
+	local gauge = o.gauge or 4.8
+	local p = Geo.path(points)
+	local function broken(x, z)
+		for _, b in o.broken or {} do
+			if (x - b[1]) ^ 2 + (z - b[2]) ^ 2 < b[3] * b[3] then
+				return true
+			end
+		end
+		return false
+	end
+	local piece = 24
+	local n = math.max(1, math.ceil(p.length / piece))
+	local pl = p.length / n
+	for i = 0, n - 1 do
+		local xa, za = Geo.sample(p, i * pl)
+		local xb, zb = Geo.sample(p, (i + 1) * pl)
+		if broken((xa + xb) / 2, (za + zb) / 2) then
+			continue
+		end
+		local a = Vector3.new(xa, ctx:GroundY(xa, za) + 0.55, za)
+		local b = Vector3.new(xb, ctx:GroundY(xb, zb) + 0.55, zb)
+		local cf, len = Core.Between(a, b)
+		for _, sx in { -1, 1 } do
+			ctx:Part({
+				Name = "Rail",
+				Parent = model,
+				Size = Vector3.new(0.35, 0.45, len + 0.1),
+				CFrame = cf * CFrame.new(sx * gauge / 2, 0, 0),
+				Material = M.Metal,
+				Color = rgb(70, 60, 54),
+				Jitter = 0.03,
+				CastShadow = false,
+			})
+		end
+		local spacing = o.sleeper or 6
+		for s = spacing / 2, len, spacing do
+			ctx:Part({
+				Name = "Sleeper",
+				Parent = model,
+				Size = Vector3.new(gauge + 2.4, 0.35, 1),
+				CFrame = cf * CFrame.new(0, -0.35, -len / 2 + s),
+				Material = M.Wood,
+				Color = rgb(64, 52, 42),
+				Jitter = 0.08,
+				CanCollide = false,
+				CastShadow = false,
+			})
+		end
+	end
+	ctx:AddMinimapPath("road", points, gauge + 2)
 	return model
 end
 
