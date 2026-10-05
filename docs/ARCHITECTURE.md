@@ -1,0 +1,296 @@
+# WW2 Frontlines — Architecture & Cross-Team Contracts
+
+This document is the **source of truth** shared by every developer (human or AI agent).
+If you need something from another subsystem, use the API/event listed here. If what you need
+is missing, implement it in **your own** files and note it under "Contract additions" at the
+bottom of this doc (append-only, one line per addition).
+
+## 1. Project layout (Rojo)
+
+```
+default.project.json
+src/shared  -> ReplicatedStorage.Shared          (ModuleScripts used by server + client)
+  Config/      game data: Constants, Factions, Classes, GameModes, Maps, Keybinds,
+               Weapons, Vehicles, Sounds, LightingPresets, Progression
+  Util/        Signal, Trove, Bus, Net (+ any pure helpers)
+  GameState    replicated match state accessor
+  WeaponModels/ procedural weapon model builder (Animation/Models team)
+  VehicleModels/ procedural vehicle model builder (Vehicle team)
+src/server  -> ServerScriptService.Server        (init.server.luau = bootstrap Script)
+  Services/    one ModuleScript per service, auto-loaded (Init then Start)
+  Maps/        MapKit/ (shared building primitives) + one builder module per map
+src/client  -> StarterPlayer.StarterPlayerScripts.Client (init.client.luau = bootstrap)
+  Controllers/ one ModuleScript per controller, auto-loaded (Init then Start)
+  UI/          UI component modules (required by UI controllers, NOT auto-loaded)
+```
+
+All content is **procedural** (built from Parts, Terrain, ParticleEmitters, built-in
+`rbxasset://` content and Roblox engine features) because this repo has no binary assets.
+Anything that would benefit from real uploaded assets (meshes, animations, audio) must be
+configurable by ID in a Config file and degrade gracefully when the ID is empty.
+
+## 2. Conventions
+
+* Luau, `.luau` extension, tabs, StyLua formatted (`FIX=1 scripts/check.sh`).
+* **Quality gate:** `scripts/check.sh` must report `ALL CHECKS PASSED` (StyLua, luau-lsp type check
+  against Roblox API definitions, Rojo build). Never leave type errors.
+* Services/controllers are tables with optional `:Init()` and `:Start()`.
+  **Never require a sibling service/controller at module top level** — require inside
+  `Init`/`Start`/functions (circular requires throw in Roblox). Config/Util/Shared modules may be
+  required at top level anywhere.
+* Server is authoritative for: damage, health, ammo counts (server tracks reserve ammo), score,
+  captures, vehicles health, spawning, progression. Clients predict visuals only.
+* Validate every remote payload on the server (types, ranges, distance, rate limits via
+  `Net.rateLimit`). Never trust client-supplied damage.
+* Clean up connections with `Trove`. No per-frame `Instance.new` in hot paths; pool effects.
+* Use `task.*` APIs, never `wait/spawn/delay`. No `while true do wait() end` loops without exit.
+* Strings for sides are exactly `"Allies"` and `"Axis"`. Roblox `Teams` named `Allies` / `Axis`.
+
+## 3. Ownership (who writes what)
+
+| Team | Owns |
+|---|---|
+| Lead | `default.project.json`, bootstraps, `Util/*`, `GameState`, `Config/{Constants,Factions,Classes,GameModes,Maps,Keybinds}`, this doc |
+| Combat | `Config/Weapons`, `Services/CombatService`, `Services/BallisticsService`(opt), `Controllers/WeaponController`, `Controllers/ProjectileController`(opt), shared `Util/Ballistics`(opt) |
+| Vehicle | `Config/Vehicles`, `VehicleModels/*`, `Services/VehicleService`, `Controllers/VehicleController` |
+| Map | `Maps/MapKit/*`, `Maps/<MapId>`, `Services/MapService`, `Services/DestructionService` |
+| Gameplay | `Config/Progression`, `Services/{RoundService,TeamService,SpawnService,ObjectiveService,ScoreService,ProgressionService,GadgetService,SquadService}`, `Controllers/GadgetController` |
+| UI | `Controllers/{UIController,SettingsController}`, everything in `src/client/UI/` |
+| Animation/Models | `WeaponModels/*`, `Services/{OutfitService,RagdollService,CharacterAnimService}`, `Controllers/{ViewmodelController,CameraController,MovementController,CharacterAnimController}` |
+| Sound/Atmosphere | `Config/{Sounds,LightingPresets}`, `Services/AtmosphereService`, `Controllers/{EffectsController,SoundController,AtmosphereController}` |
+
+## 4. Replicated state
+
+### GameState (ReplicatedStorage.GameState attributes) — see `src/shared/GameState.luau`
+Written by Gameplay (RoundService/ObjectiveService), MapService writes `MapInfoJson`.
+
+### Player attributes (written by server, read by everyone)
+| Attribute | Type | Writer |
+|---|---|---|
+| `Side` | "Allies"/"Axis"/"" | TeamService |
+| `Faction` | Factions id | TeamService |
+| `Class` | Classes id | SpawnService |
+| `Squad` | number (0 = none) | SquadService |
+| `SquadLeader` | bool | SquadService |
+| `Alive` | bool | SpawnService |
+| `Kills`, `Deaths`, `Assists`, `Score`, `Captures` | number | ScoreService |
+| `Level`, `XP` | number | ProgressionService |
+| `Loadout` | JSON string `{primary,secondary,gadget1,gadget2}` | SpawnService |
+| `EquippedWeapon` | Weapons id | CombatService |
+| `VehicleUid` | string ("" when on foot) | VehicleService |
+| `Spotted` | number (os.clock-style server time until which the player is spotted; compare with `workspace:GetServerTimeNow()`) | GadgetService |
+
+### Character attributes
+| Attribute | Type | Writer |
+|---|---|---|
+| `AimPitch` | number (radians) | CharacterAnimService (from client unreliable remote) |
+| `Stance` | "Stand"/"Crouch"/"Prone"/"Sprint" | CharacterAnimService (from client) |
+| `SpawnProtected` | bool | SpawnService |
+
+### Vehicle model attributes (Model tagged `Vehicle`)
+`VehicleId` (Vehicles config id), `Uid` (string), `Side`, `Health`, `MaxHealth`, `Destroyed` (bool),
+`Driver` (UserId or 0), `Faction`.
+
+### Objectives
+`ReplicatedStorage.GameState.Objectives.<id>` folders, attributes documented in GameState.luau.
+
+## 5. Remotes (`Net.event(name)` etc.). Payloads are tables unless noted.
+
+Client → Server
+| Name | Payload | Owner (server handler) |
+|---|---|---|
+| `Team_Request` | `{side: "Allies"|"Axis"|"Auto"}` | TeamService |
+| `Spawn_Request` | `{classId, loadout={primary,secondary,gadget1,gadget2}, spawnId}` (`spawnId` = "HQ", an objective id, or "Squad") | SpawnService |
+| `Combat_Equip` | `{slot: "primary"|"secondary"|"gadget1"|"gadget2"|"melee"}` | CombatService |
+| `Combat_Fire` | `{weaponId, origin: Vector3, shots: {{dir: Vector3, hit: Instance?, pos: Vector3?, normal: Vector3?}}, t: number}` | CombatService |
+| `Combat_Reload` | `{weaponId}` | CombatService |
+| `Combat_Throw` | `{weaponId, origin, velocity: Vector3}` (grenades/explosives/AT rockets) | CombatService |
+| `Combat_Melee` | `{target: Model}` | CombatService |
+| `Gadget_Use` | `{gadget: string, target: Instance?, position: Vector3?}` | GadgetService |
+| `Vehicle_Request` | `{action:"enter"|"exit"|"switchSeat", uid, seat?}` | VehicleService |
+| `Vehicle_Fire` | `{uid, weapon:"main"|"coax"|"hullMG", aim: Vector3}` | VehicleService |
+| `Anim_State` (unreliable) | `{pitch: number, stance: string}` (≤ 15 Hz) | CharacterAnimService |
+| `Settings_Save` | settings table | ProgressionService |
+
+Server → Client
+| Name | Payload | Consumers |
+|---|---|---|
+| `Combat_Kill` (all) | `{killer: Player?, victim: Player, weaponId, headshot: bool, killerSide, victimSide, distance, vehicleId?}` | UI killfeed |
+| `Combat_HitConfirm` | `{damage, headshot, killed, target: "player"|"vehicle"}` | UI hitmarker, Sound |
+| `Combat_Damaged` | `{amount, fromPosition: Vector3?, weaponId}` | UI damage indicator, CameraController shake |
+| `Combat_ShotFX` (unreliable, all but shooter) | `{shooter: Player, weaponId, origin, hits: {{pos, normal, material: string}}}` | WeaponController → Effects/Sound |
+| `Combat_Ammo` | `{weaponId, mag, reserve}` (authoritative correction) | WeaponController |
+| `FX_Explosion` (all) | `{position, radius, kind: "grenade"|"shell"|"rocket"|"satchel"|"vehicle"}` | EffectsController, SoundController, CameraController |
+| `Player_Died` | `{killer: Player?, weaponId?, respawnTime}` | UI deploy screen |
+| `Spawn_Result` | `{ok: bool, error: string?}` | UI |
+| `Score_Event` | `{reason: string, points: number}` e.g. "Enemy Killed", "Objective Captured", "Revive", "Resupply", "Repair", "Spot Assist", "Headshot" | UI score popups |
+| `Progression_Updated` | ProgressionData | UI |
+| `Round_Ended` (all) | `{winner, mvp: {name, score}?, topPlayers: {{name, side, score, kills, deaths}}}` | UI |
+| `Vehicle_State` | `{uid, seat, inVehicle: bool}` | VehicleController, UI |
+| `Notify` | `{text, kind: "info"|"warning"|"objective", duration?}` | UI toast |
+
+RemoteFunctions
+| Name | Returns | Owner |
+|---|---|---|
+| `Progression_Get` | ProgressionData = `{level, xp, xpToNext, unlocked: {[weaponId]: true}, weaponKills: {[weaponId]: number}, settings: table}` | ProgressionService |
+| `Spawn_GetOptions` | `{ {id, name, position: Vector3, kind: "HQ"|"Objective"|"Squad", available: bool} }` | SpawnService |
+
+## 6. Bus events (in-process, `Bus.fire/connect`)
+
+Server bus
+| Event | Args | Fired by |
+|---|---|---|
+| `PlayerKilled` | `victim: Player, killer: Player?, weaponId: string, headshot: boolean` | CombatService |
+| `PlayerDamaged` | `victim: Player, attacker: Player?, amount: number, weaponId: string` | CombatService |
+| `PlayerSpawned` | `player: Player, character: Model, classId: string` | SpawnService |
+| `ObjectiveCaptured` | `objectiveId, side, capturers: {Player}` | ObjectiveService |
+| `RoundStarted` | `modeId, mapId` | RoundService |
+| `RoundEnded` | `winner: string` | RoundService |
+| `MapLoaded` | `mapInfo: MapInfo (server form)` | MapService |
+| `MapUnloading` | — | MapService |
+| `Explosion` | `position: Vector3, radius: number, power: number, attacker: Player?` | CombatService, VehicleService |
+| `VehicleDestroyed` | `vehicle: Model, killer: Player?` | VehicleService |
+| `ScoreAwarded` | `player, reason, points` | ScoreService |
+
+Client bus
+| Event | Args | Fired by |
+|---|---|---|
+| `WeaponEquipped` | `weaponId: string, slot: string` | WeaponController |
+| `WeaponUnequipped` | — | WeaponController |
+| `AmmoChanged` | `weaponId, mag, reserve` | WeaponController |
+| `AimChanged` | `isAiming: boolean` | WeaponController |
+| `Fired` | `weaponId` | WeaponController |
+| `ReloadStarted` | `weaponId, duration, empty: boolean` | WeaponController |
+| `FireModeChanged` | `mode: "Auto"|"Semi"|"Bolt"|"Burst"` | WeaponController |
+| `SpreadChanged` | `spreadDegrees: number` (for crosshair) | WeaponController |
+| `StanceChanged` | `stance` | MovementController |
+| `Deployed` | `character` | UIController (after Spawn_Result ok and character added) |
+| `VehicleEntered` | `uid, vehicleId, seat` | VehicleController |
+| `VehicleExited` | — | VehicleController |
+| `SettingsChanged` | `settings: table` | SettingsController |
+| `MenuOpened` / `MenuClosed` | `menuName` | UIController (input controllers ignore input while a menu is open) |
+
+## 7. Public module APIs
+
+### Server
+```lua
+CombatService.ApplyPlayerDamage(victim: Player, amount: number, attacker: Player?, weaponId: string,
+    opts: {headshot: boolean?, fromPosition: Vector3?, ignoreFriendlyFire: boolean?}?) -> (boolean) -- returns killed
+CombatService.Explode(position: Vector3, radius: number, maxDamage: number, attacker: Player?, weaponId: string,
+    opts: {vehicleDamage: number?, kind: string?}?) -- damages players (LOS-checked) + vehicles, fires FX_Explosion & Bus "Explosion"
+CombatService.GiveLoadout(player: Player, loadout: {primary, secondary, gadget1, gadget2}) -- (re)initialises ammo
+CombatService.Resupply(player: Player, fraction: number) -> boolean -- refill ammo, returns true if anything refilled
+CombatService.Heal(player: Player, amount: number, healer: Player?) -> number -- hp actually healed
+
+VehicleService.ApplyDamage(vehicle: Model, amount: number, attacker: Player?, weaponId: string,
+    hitPosition: Vector3?, opts: {penetration: number?, explosive: boolean?}?)
+VehicleService.Repair(vehicle: Model, amount: number, repairer: Player?) -> number
+VehicleService.SpawnTeamVehicles(mapInfo) / VehicleService.ClearAll()
+VehicleService.GetVehicleOf(player) -> Model?
+
+MapService.LoadMap(mapId: string) -> MapInfo   -- builds map, writes GameState.MapInfoJson, fires Bus MapLoaded
+MapService.UnloadMap()
+MapService.GetMapInfo() -> MapInfo?
+
+ScoreService.Award(player: Player, reason: string, points: number) -- also fires Score_Event + XP
+SpawnService.KillAndDespawnAll() / SpawnService.SetSpawningEnabled(bool)
+OutfitService.Apply(character: Model, factionId: string, classId: string)
+AtmosphereService.ApplyPreset(presetId: string, weather: string) -- usually driven by GameState attributes
+```
+
+### Shared
+```lua
+WeaponModels.Build(weaponId: string) -> Model
+  -- PrimaryPart "Handle"; Attachments on Handle: "Muzzle", "Grip" (right hand), "Support" (left hand),
+  -- "Sight" (eye position for ADS, looking down -Z... i.e. Handle LookVector is the barrel direction),
+  -- "Eject" (shell ejection). All parts Anchored=false, CanCollide=false, Massless=true, welded to Handle.
+VehicleModels.Build(vehicleId: string) -> Model   -- see Vehicle team docs
+```
+
+### Client
+```lua
+ViewmodelController.Equip(weaponId) / .Unequip()
+ViewmodelController.SetAiming(aiming: boolean)
+ViewmodelController.PlayFire(kick: number)          -- visual recoil kick (0..1 typical)
+ViewmodelController.PlayReload(duration: number, empty: boolean)
+ViewmodelController.PlayEquip(duration) / .PlayThrow() / .PlayMelee() / .PlayBolt(duration)
+ViewmodelController.GetMuzzleWorldCFrame() -> CFrame?
+ViewmodelController.GetAimAlpha() -> number          -- 0 hip .. 1 fully aimed
+CameraController.AddRecoil(pitchDeg: number, yawDeg: number)
+CameraController.Shake(magnitude: number, duration: number)
+CameraController.SetFovOffset(key: string, delta: number)   -- e.g. ADS zoom, sprint
+CameraController.SetFirstPerson(enabled: boolean)
+MovementController.GetStance() -> string / .IsSprinting() -> boolean / .SetSprintBlocked(bool)
+EffectsController.MuzzleFlash(cframe: CFrame, scale: number?)
+EffectsController.Tracer(from: Vector3, to: Vector3, color: Color3?)
+EffectsController.Impact(position: Vector3, normal: Vector3, material: Enum.Material | string)
+EffectsController.Explosion(position: Vector3, radius: number, kind: string)
+EffectsController.Smoke(position: Vector3, radius: number, duration: number)
+EffectsController.ShellEject(cframe: CFrame, kind: string?)
+SoundController.PlayAt(key: string, position: Vector3, opts: {volume: number?, pitch: number?}?)
+SoundController.Play2D(key: string, opts?)
+SoundController.PlayWeaponShot(weaponId: string, position: Vector3, isLocal: boolean)
+SettingsController.Get(key: string) -> any   -- keys: "MouseSensitivity","AimSensitivity","FieldOfView",
+  -- "MasterVolume","EffectsVolume","MusicVolume","GraphicsQuality"(1-3),"ShowFPS","CrosshairColor","Hitmarkers"
+UIController.IsMenuOpen() -> boolean
+```
+
+## 8. Config schemas
+
+### Weapons (`Config/Weapons.luau`, Combat team)
+```lua
+{
+  id: string, name: string, category: string, -- see Classes.luau categories
+  factions: {string}, unlockLevel: number, description: string,
+  -- firearms
+  damage: number, headshotMultiplier: number, limbMultiplier: number,
+  damageFalloff: { {range: number, multiplier: number} }, -- ascending ranges
+  rpm: number, fireModes: {"Auto"|"Semi"|"Bolt"|"Burst"},
+  magazine: number, reserve: number, reloadTime: number, emptyReloadTime: number?,
+  reloadType: "magazine"|"clip"|"single", -- single = shell-by-shell
+  pellets: number?, -- shotguns
+  hipSpread: number, adsSpread: number, moveSpreadMult: number, -- degrees
+  recoil: { vertical: number, horizontal: number, recovery: number, firstShotMult: number }, -- degrees
+  adsTime: number, adsZoom: number, -- FOV multiplier, e.g. 0.8; scoped snipers ~0.3 with scope=true
+  scope: boolean?, bulletVelocity: number, -- studs/s (hitscan below ~0.05s travel is fine)
+  range: number, -- max effective range (studs)
+  equipTime: number, walkSpeedMult: number, penetration: number, -- 0..1 vs cover (optional use)
+  suppression: number?, -- 0..1
+  -- throwables / launchers
+  fuse: number?, blastRadius: number?, blastDamage: number?, vehicleDamage: number?, throwSpeed: number?,
+  -- presentation
+  visual: { archetype: string, magazine: "box"|"drum"|"stick"|"side"|"top"|"internal"|"none",
+            length: number?, woodColor: Color3?, metalColor: Color3?, scope: boolean?, bayonet: boolean? },
+  sound: string, -- Sounds.luau key family, e.g. "Rifle_Bolt", "SMG", "LMG", "Pistol"
+}
+```
+Archetypes (WeaponModels must support all): `BoltRifle`, `SemiRifle`, `AssaultRifle`, `SMG`,
+`LMG`, `HMG`(bipod MG42-like), `Pistol`, `Revolver`, `Shotgun`, `SniperRifle`, `Bazooka`(tube),
+`Panzerfaust`, `PIAT`, `StickGrenade`, `FragGrenade`, `SmokeGrenade`, `Satchel`, `Knife`,
+`Medkit`, `AmmoBox`, `Wrench`, `Binoculars`.
+
+### MapInfo (MapService ↔ map builders)
+```lua
+MapBuilder.Build(parent: Folder, mapDef) -> MapInfo
+MapInfo = {
+  id: string,
+  bounds: { center: Vector3, size: Vector3 },
+  hq: { Allies: {CFrame}, Axis: {CFrame} },                -- infantry spawn CFrames per side
+  objectives: { {id: "A".."G", name: string, position: Vector3, radius: number, order: number,
+                 initialOwner: "Allies"|"Axis"|"Neutral",
+                 spawns: {CFrame} } },                       -- order = frontline position (1 = Allies end)
+  vehicleSpawns: { Allies: { {cframe: CFrame, class: "Tank"|"Light"|"Transport"|"Jeep"|"AT"} }, Axis: {...} },
+  minimap: { {kind: "building"|"road"|"water"|"trench"|"forest"|"field", cx, cz, sx, sz, rot} },
+  outOfBounds: number?,                                     -- seconds before death outside bounds
+}
+```
+`GameState.MapInfoJson` = `HttpService:JSONEncode` of the public subset:
+`{id, bounds={cx,cy,cz,sx,sy,sz}, objectives={{id,name,x,y,z,radius,order}}, hq={Allies={x,z},Axis={x,z}}, minimap=...}`.
+
+### Vehicles (`Config/Vehicles.luau`, Vehicle team)
+`{id, name, class: "Tank"|"Light"|"Transport"|"Jeep"|"AT", factions, maxHealth, armor: {front, side, rear},
+  speed, reverseSpeed, turnRate, turretTraverse, gunElevation: {min,max}, weapons: {...}, seats: {...},
+  respawnTime, unlockLevel, description}`.
+
+## 9. Contract additions
+(append below: `- <team>: <what> — <where>`)
