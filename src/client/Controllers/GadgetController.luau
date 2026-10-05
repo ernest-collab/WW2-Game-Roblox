@@ -561,7 +561,12 @@ local function updateVisuals()
 	for _, vehicle in CollectionService:GetTagged(VEHICLE_TAG) do
 		local spotted = vehicle:GetAttribute("Spotted")
 		local side = vehicle:GetAttribute("Side")
-		if type(spotted) == "number" and spotted > now and side ~= mySide and vehicle:GetAttribute("Destroyed") ~= true then
+		if
+			type(spotted) == "number"
+			and spotted > now
+			and side ~= mySide
+			and vehicle:GetAttribute("Destroyed") ~= true
+		then
 			wanted[vehicle] = true
 		end
 	end
