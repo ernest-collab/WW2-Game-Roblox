@@ -467,7 +467,11 @@ local function gableRoof(
 	style: Style,
 	opts: { [string]: any }
 )
-	local pitch = math.rad(opts.pitch or style.pitch)
+	local pitchDeg = opts.pitch or style.pitch
+	if pitchDeg <= 5 then
+		pitchDeg = 32 -- flat-roof styles asked for a gable: use a sensible default pitch
+	end
+	local pitch = math.rad(pitchDeg)
 	local oh = opts.overhang or 1.2
 	local t = opts.wallT or 1
 	local ruin = opts.ruin or 0
