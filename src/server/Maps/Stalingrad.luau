@@ -158,7 +158,7 @@ function Stalingrad.Build(parent: Folder, _def: any)
 			style = wallStyles[rng:NextInteger(1, #wallStyles)],
 			width = w,
 			depth = 16,
-			floors = rng:NextInteger(3, 5),
+			floors = rng:NextInteger(3, 4),
 			ruin = rng:NextNumber(0.45, 0.9),
 			enterable = rng:NextNumber() < 0.35,
 			balconies = rng:NextNumber() < 0.5,
@@ -174,8 +174,15 @@ function Stalingrad.Build(parent: Folder, _def: any)
 	local function courtyard(cx: number, cz: number, w: number, d: number)
 		local r = rng:NextNumber()
 		if r < 0.5 and w > 50 and d > 40 then
-			local pts = { V(cx - w * 0.38, cz + rng:NextNumber(-d, d) * 0.2), V(cx + w * 0.38, cz + rng:NextNumber(-d, d) * 0.2) }
-			Fort.Trench(ctx, Layout.Zigzag(pts, 3, 11), { parapet = "both", revetment = 0.5, sandbags = 0.15, depth = 5.5 })
+			local pts = {
+				V(cx - w * 0.38, cz + rng:NextNumber(-d, d) * 0.2),
+				V(cx + w * 0.38, cz + rng:NextNumber(-d, d) * 0.2),
+			}
+			Fort.Trench(
+				ctx,
+				Layout.Zigzag(pts, 3, 11),
+				{ parapet = "both", revetment = 0.5, sandbags = 0.15, depth = 5.5 }
+			)
 		elseif r < 0.75 then
 			Fort.MGNest(ctx, ctx:GroundCF(cx + rng:NextNumber(-10, 10), cz, rng:NextNumber(0, 360)), {})
 		end
@@ -194,7 +201,7 @@ function Stalingrad.Build(parent: Folder, _def: any)
 		local bw, bd = ix1 - ix0, iz1 - iz0
 		local cx, cz = (ix0 + ix1) / 2, (iz0 + iz1) / 2
 		if bw >= bd then
-			local w = math.min(bw - 8, 56)
+			local w = math.min(bw - 8, 48)
 			for side = -1, 1, 2 do
 				local z = if side < 0 then iz0 + 8 else iz1 - 8
 				local yaw = if side < 0 then 0 else 180
@@ -207,7 +214,7 @@ function Stalingrad.Build(parent: Folder, _def: any)
 			end
 			courtyard(cx, cz, bw, bd - 32)
 		else
-			local w = math.min(bd - 8, 56)
+			local w = math.min(bd - 8, 48)
 			for side = -1, 1, 2 do
 				local x = if side < 0 then ix0 + 8 else ix1 - 8
 				local yaw = if side < 0 then 90 else -90
@@ -244,13 +251,22 @@ function Stalingrad.Build(parent: Folder, _def: any)
 					roof = if rng:NextNumber() < 0.5 then "flat" else "gable",
 				})
 			else
-				Buildings.RuinedWall(ctx, ctx:GroundCF(s[1], s[2], s[3]), 18, rng:NextNumber(7, 14), { style = "Brick" })
+				Buildings.RuinedWall(
+					ctx,
+					ctx:GroundCF(s[1], s[2], s[3]),
+					18,
+					rng:NextNumber(7, 14),
+					{ style = "Brick" }
+				)
 			end
 		end
 		local cx, cz = (ix0 + ix1) / 2, (iz0 + iz1) / 2
 		Props.RubblePile(ctx, V(cx, cz), { radius = rng:NextNumber(7, 11), height = 4 })
 		if rng:NextNumber() < 0.6 then
-			Fort.Foxhole(ctx, ctx:GroundCF(cx + rng:NextNumber(-15, 15), cz + rng:NextNumber(-15, 15), rng:NextNumber(0, 360)))
+			Fort.Foxhole(
+				ctx,
+				ctx:GroundCF(cx + rng:NextNumber(-15, 15), cz + rng:NextNumber(-15, 15), rng:NextNumber(0, 360))
+			)
 		end
 		if rng:NextNumber() < 0.5 then
 			Nature.Tree(ctx, V(cx + rng:NextNumber(-20, 20), cz + rng:NextNumber(-20, 20)), "Dead", 1)
@@ -280,18 +296,34 @@ function Stalingrad.Build(parent: Folder, _def: any)
 	-------------------------------------------------------------------------------------------
 	-- 3. C: Red October factory compound (centre column, z -230..110)
 	-------------------------------------------------------------------------------------------
-	Buildings.FactoryHall(ctx, ctx:GroundCF(0, -60, 0), { width = 110, depth = 56, height = 24, ruin = 0.62, name = "RedOctoberHall" })
+	Buildings.FactoryHall(
+		ctx,
+		ctx:GroundCF(0, -60, 0),
+		{ width = 110, depth = 56, height = 24, ruin = 0.62, name = "RedOctoberHall" }
+	)
 	Buildings.Chimney(ctx, V(78, 40), { height = 72, radius = 5, ruin = 0.15 })
 	Buildings.Chimney(ctx, V(-82, 44), { height = 60, radius = 4.5, ruin = 0.6 })
-	Buildings.FactoryHall(ctx, ctx:GroundCF(-35, -180, 0), { width = 64, depth = 30, height = 14, ruin = 0.75, bay = 10, crane = false })
-	Buildings.House(ctx, ctx:GroundCF(70, -185, 0), { style = "SovietBrick", width = 26, depth = 16, floors = 2, ruin = 0.5, roof = "flat", name = "Offices" })
+	Buildings.FactoryHall(
+		ctx,
+		ctx:GroundCF(-35, -180, 0),
+		{ width = 64, depth = 30, height = 14, ruin = 0.75, bay = 10, crane = false }
+	)
+	Buildings.House(
+		ctx,
+		ctx:GroundCF(70, -185, 0),
+		{ style = "SovietBrick", width = 26, depth = 16, floors = 2, ruin = 0.5, roof = "flat", name = "Offices" }
+	)
 	Props.Railway(ctx, { V(-140, 60), V(-60, 62), V(40, 66), V(118, 70) }, { broken = { { -20, 63, 9 } } })
 	Props.Wreck(ctx, ctx:GroundCF(-30, 64, 90), { kind = "truck", color = rgb(60, 56, 50) })
 	Props.Wreck(ctx, ctx:GroundCF(60, -120, 30), { kind = "tank", burning = true })
 	Props.BarrelGroup(ctx, ctx:GroundCF(-70, -120, 0), { count = 5 })
 	Props.CrateStack(ctx, ctx:GroundCF(45, -10, 20))
 	Props.CrateStack(ctx, ctx:GroundCF(-100, -20, 0))
-	Fort.Trench(ctx, Layout.Zigzag({ V(-110, -120), V(-40, -128), V(30, -125), V(110, -118) }, 3, 12), { parapet = "both", sandbags = 0.25 })
+	Fort.Trench(
+		ctx,
+		Layout.Zigzag({ V(-110, -120), V(-40, -128), V(30, -125), V(110, -118) }, 3, 12),
+		{ parapet = "both", sandbags = 0.25 }
+	)
 	Fort.Barricade(ctx, ctx:GroundCF(-118, -60, 90), { kind = "debris", length = 14 })
 	Fort.Barricade(ctx, ctx:GroundCF(118, -40, -90), { kind = "debris", length = 14 })
 	Fort.MGNest(ctx, ctx:GroundCF(95, 0, -90), {})
@@ -335,10 +367,41 @@ function Stalingrad.Build(parent: Folder, _def: any)
 	local function tram(x: number, z: number, yaw: number, tilt: number)
 		local cf = ctx:GroundCF(x, z, yaw) * CFrame.Angles(0, 0, tilt)
 		local m = ctx:Model("Tram", ctx:Folder("Props"))
-		ctx:Part({ Name = "Body", Parent = m, Size = Vector3.new(7, 5, 24), CFrame = cf * CFrame.new(0, 3.8, 0), Material = M.CorrodedMetal, Color = rgb(120, 86, 52), NoPenetration = true })
-		ctx:Part({ Name = "Windows", Parent = m, Size = Vector3.new(7.2, 1.6, 20), CFrame = cf * CFrame.new(0, 4.6, 0), Material = M.Glass, Color = rgb(30, 30, 30), CastShadow = false })
-		ctx:Part({ Name = "Roof", Parent = m, Size = Vector3.new(6.4, 0.6, 23), CFrame = cf * CFrame.new(0, 6.6, 0), Material = M.CorrodedMetal, Color = rgb(70, 64, 58) })
-		ctx:Part({ Name = "Chassis", Parent = m, Size = Vector3.new(5, 1.4, 20), CFrame = cf * CFrame.new(0, 0.9, 0), Material = M.Metal, Color = rgb(40, 38, 36), CastShadow = false })
+		ctx:Part({
+			Name = "Body",
+			Parent = m,
+			Size = Vector3.new(7, 5, 24),
+			CFrame = cf * CFrame.new(0, 3.8, 0),
+			Material = M.CorrodedMetal,
+			Color = rgb(120, 86, 52),
+			NoPenetration = true,
+		})
+		ctx:Part({
+			Name = "Windows",
+			Parent = m,
+			Size = Vector3.new(7.2, 1.6, 20),
+			CFrame = cf * CFrame.new(0, 4.6, 0),
+			Material = M.Glass,
+			Color = rgb(30, 30, 30),
+			CastShadow = false,
+		})
+		ctx:Part({
+			Name = "Roof",
+			Parent = m,
+			Size = Vector3.new(6.4, 0.6, 23),
+			CFrame = cf * CFrame.new(0, 6.6, 0),
+			Material = M.CorrodedMetal,
+			Color = rgb(70, 64, 58),
+		})
+		ctx:Part({
+			Name = "Chassis",
+			Parent = m,
+			Size = Vector3.new(5, 1.4, 20),
+			CFrame = cf * CFrame.new(0, 0.9, 0),
+			Material = M.Metal,
+			Color = rgb(40, 38, 36),
+			CastShadow = false,
+		})
 	end
 	tram(-330, 185, 90, 0)
 	tram(-215, 205, 90, 0)
@@ -381,17 +444,29 @@ function Stalingrad.Build(parent: Folder, _def: any)
 		style = "Brick",
 		name = "Warehouse",
 	})
-	Buildings.House(ctx, ctx:GroundCF(320, -200, 0), { style = "SovietBrick", width = 22, depth = 14, floors = 2, ruin = 0.65, roof = "flat" })
+	Buildings.House(
+		ctx,
+		ctx:GroundCF(320, -200, 0),
+		{ style = "SovietBrick", width = 22, depth = 14, floors = 2, ruin = 0.65, roof = "flat" }
+	)
 	Props.CrateStack(ctx, ctx:GroundCF(305, -78, 0))
 	Props.CrateStack(ctx, ctx:GroundCF(365, -80, 0))
 	Props.BarrelGroup(ctx, ctx:GroundCF(372, -160, 0))
-	Fort.Trench(ctx, Layout.Zigzag({ V(410, -300), V(412, -170), V(410, -45) }, 3, 12), { parapet = "right", sandbags = 0.3 })
-	Fort.Trench(ctx, Layout.Zigzag({ V(410, 115), V(412, 230), V(410, 330) }, 3, 12), { parapet = "right", sandbags = 0.3 })
+	Fort.Trench(
+		ctx,
+		Layout.Zigzag({ V(410, -300), V(412, -170), V(410, -45) }, 3, 12),
+		{ parapet = "right", sandbags = 0.3 }
+	)
+	Fort.Trench(
+		ctx,
+		Layout.Zigzag({ V(410, 115), V(412, 230), V(410, 330) }, 3, 12),
+		{ parapet = "right", sandbags = 0.3 }
+	)
 	Fort.MGNest(ctx, ctx:GroundCF(402, -100, 90), {})
 	Fort.MGNest(ctx, ctx:GroundCF(402, 170, 90), {})
 	Fort.ATGun(ctx, ctx:GroundCF(398, 60, 90), {})
 	Props.WoodBridge(ctx, V(520, -150), V(600, -150), { width = 6 }) -- jetty
-	Props.Wreck(ctx, ctx:GroundCF(560, -60, 30), { kind = "truck", snap = false } :: any)
+	Props.Wreck(ctx, CFrame.new(560, -4, -60) * CFrame.Angles(0, math.rad(30), 0), { kind = "truck", snap = false }) -- stuck in the ice
 	for _, p in { { 450, -250 }, { 440, 210 }, { 455, 300 } } do
 		Props.CrateStack(ctx, ctx:GroundCF(p[1], p[2], 0))
 	end
@@ -423,7 +498,11 @@ function Stalingrad.Build(parent: Folder, _def: any)
 			Fort.Hedgehog(ctx, p)
 			Fort.Hedgehog(ctx, p + V(rng:NextNumber(4, 7), rng:NextNumber(-4, 4)))
 		elseif roll == 5 then
-			Fort.Barricade(ctx, ctx:GroundCF(p.X, p.Z, rng:NextNumber(0, 180)), { kind = if rng:NextNumber() < 0.5 then "debris" else "wood" })
+			Fort.Barricade(
+				ctx,
+				ctx:GroundCF(p.X, p.Z, rng:NextNumber(0, 180)),
+				{ kind = if rng:NextNumber() < 0.5 then "debris" else "wood" }
+			)
 		else
 			Props.Debris(ctx, p, { radius = 6, count = 5 })
 		end
@@ -459,7 +538,8 @@ function Stalingrad.Build(parent: Folder, _def: any)
 	-------------------------------------------------------------------------------------------
 	-- 9. HQs, objectives, MapInfo
 	-------------------------------------------------------------------------------------------
-	local alliesHQ = Layout.SpawnArea(ctx, HQ_ALLIES, "Allies", { spawnCount = 10, vehicleCount = 3, width = 130 })
+	local alliesHQ =
+		Layout.SpawnArea(ctx, HQ_ALLIES, "Allies", { spawnCount = 10, vehicleCount = 3, width = 130, bermHeight = 10 })
 	local axisHQ = Layout.SpawnArea(ctx, HQ_AXIS, "Axis", { spawnCount = 10, vehicleCount = 3, width = 130 })
 	-- Ruined facades screening the Axis HQ from the avenue
 	Buildings.RuinedWall(ctx, ctx:GroundCF(-436, -40, -90), 30, 16, { style = "SovietBrick", ruin = 0.4 })
