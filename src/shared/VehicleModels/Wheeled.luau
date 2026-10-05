@@ -61,24 +61,14 @@ function Wheeled.armoredCar(kit: Kit.Kit, s: any, def: any): BuildInfo
 	local bodyL = L - nose - tail
 	local bodyZ = (nose - tail) / 2
 	local lower = kit:box("LowerHull", Vector3.new(W, H, bodyL), CFrame.new(0, 0, bodyZ), P.base)
-	kit:wedge(
-		"Nose",
-		Vector3.new(W, H, nose),
-		CFrame.new(0, 0, bodyZ - bodyL / 2 - nose / 2) * Kit.FLIP_DOWN,
-		P.base
-	)
+	kit:wedge("Nose", Vector3.new(W, H, nose), CFrame.new(0, 0, bodyZ - bodyL / 2 - nose / 2) * Kit.FLIP_DOWN, P.base)
 	kit:wedge("Tail", Vector3.new(W, H, tail), CFrame.new(0, 0, bodyZ + bodyL / 2 + tail / 2) * TAIL_DOWN, P.base)
 
 	local Hu, Lu, uz = u.height, u.length, u.z or bodyZ
 	local ss = u.sideSlope or 0
 	local yU = H / 2 + Hu / 2
-	local upper = kit:box(
-		"UpperHull",
-		Vector3.new(W - 2 * ss, Hu, Lu),
-		CFrame.new(0, yU, uz),
-		P.base,
-		{ collide = true }
-	)
+	local upper =
+		kit:box("UpperHull", Vector3.new(W - 2 * ss, Hu, Lu), CFrame.new(0, yU, uz), P.base, { collide = true })
 	if ss > 0 then
 		kit:wedge("SideL", Vector3.new(Lu, Hu, ss), CFrame.new(-W / 2 + ss / 2, yU, uz) * Kit.FACE_LEFT, P.base)
 		kit:wedge("SideR", Vector3.new(Lu, Hu, ss), CFrame.new(W / 2 - ss / 2, yU, uz) * Kit.FACE_RIGHT, P.base)
@@ -158,12 +148,7 @@ function Wheeled.jeep(kit: Kit.Kit, s: any, _def: any): BuildInfo
 	-- hood & grille
 	local hoodZ = -L / 2 + hoodL / 2
 	if hood.slope then
-		kit:wedge(
-			"Hood",
-			Vector3.new(W * 0.9, hoodH, hoodL),
-			CFrame.new(0, H / 2 + hoodH / 2, hoodZ),
-			P.base
-		)
+		kit:wedge("Hood", Vector3.new(W * 0.9, hoodH, hoodL), CFrame.new(0, H / 2 + hoodH / 2, hoodZ), P.base)
 	else
 		kit:box("Hood", Vector3.new(W * 0.78, hoodH, hoodL), CFrame.new(0, H / 2 + hoodH / 2, hoodZ), P.base)
 		kit:box(
@@ -246,12 +231,7 @@ function Wheeled.truck(kit: Kit.Kit, s: any, def: any): BuildInfo
 	-- hood
 	local hoodZ = front + hoodL / 2
 	if hoodL > 0 then
-		kit:box(
-			"Hood",
-			Vector3.new(W * 0.62, cabH * 0.45, hoodL),
-			CFrame.new(0, H / 2 + cabH * 0.225, hoodZ),
-			P.base
-		)
+		kit:box("Hood", Vector3.new(W * 0.62, cabH * 0.45, hoodL), CFrame.new(0, H / 2 + cabH * 0.225, hoodZ), P.base)
 		kit:box(
 			"Grille",
 			Vector3.new(W * 0.6, cabH * 0.5, 0.2),
@@ -286,7 +266,12 @@ function Wheeled.truck(kit: Kit.Kit, s: any, def: any): BuildInfo
 		if s.canvasCab then P.canvas else cabColor,
 		{ material = if s.canvasCab then Enum.Material.Fabric else Enum.Material.Metal }
 	)
-	kit:box("CabBack", Vector3.new(W, cabH * 0.45, 0.2), CFrame.new(0, H / 2 + cabH * 0.775, cabZ + cabL / 2 - 0.1), cabColor)
+	kit:box(
+		"CabBack",
+		Vector3.new(W, cabH * 0.45, 0.2),
+		CFrame.new(0, H / 2 + cabH * 0.775, cabZ + cabL / 2 - 0.1),
+		cabColor
+	)
 	for _, side in { -1, 1 } do
 		kit:box(
 			"CabPillar",
@@ -377,10 +362,7 @@ function Wheeled.truck(kit: Kit.Kit, s: any, def: any): BuildInfo
 		local side = if i % 2 == 1 then -1 else 1
 		local idx = math.ceil(i / 2)
 		local z = bedZ - bedL / 2 + 1 + (bedL - 2) * ((idx - 0.5) / perSide)
-		table.insert(
-			passengers,
-			CFrame.new(side * (W / 2 - 0.75), bedY + 1.1, z) * (if side < 0 then RIGHT else LEFT)
-		)
+		table.insert(passengers, CFrame.new(side * (W / 2 - 0.75), bedY + 1.1, z) * (if side < 0 then RIGHT else LEFT))
 	end
 
 	return {
@@ -417,12 +399,7 @@ function Wheeled.halftrack(kit: Kit.Kit, s: any, def: any): BuildInfo
 	local hoodZ = front + hoodL / 2
 	local hoodW = W * 0.72
 	if s.nose then
-		kit:wedge(
-			"Hood",
-			Vector3.new(hoodW, hoodH, hoodL),
-			CFrame.new(0, H / 2 + hoodH / 2, hoodZ),
-			P.base
-		)
+		kit:wedge("Hood", Vector3.new(hoodW, hoodH, hoodL), CFrame.new(0, H / 2 + hoodH / 2, hoodZ), P.base)
 	else
 		kit:box("Hood", Vector3.new(hoodW, hoodH, hoodL), CFrame.new(0, H / 2 + hoodH / 2, hoodZ), P.base)
 		kit:box(
@@ -463,13 +440,13 @@ function Wheeled.halftrack(kit: Kit.Kit, s: any, def: any): BuildInfo
 		wallR = kit:box("WallR", Vector3.new(0.25, wallH, compL), CFrame.new(W / 2 - 0.125, yWall, compZ), P.base)
 	end
 	kit:box("Dash", Vector3.new(W, wallH, 0.3), CFrame.new(0, yWall, front + hoodL + 0.15), P.base)
-	kit:box("RearDoor", Vector3.new(W - 2 * math.max(slope, 0.25), wallH, 0.25), CFrame.new(0, yWall, L / 2 - 0.125), P.base)
 	kit:box(
-		"Visor",
-		Vector3.new(W * 0.8, 0.3, 0.12),
-		CFrame.new(0, H / 2 + wallH - 0.4, front + hoodL),
-		P.dark
+		"RearDoor",
+		Vector3.new(W - 2 * math.max(slope, 0.25), wallH, 0.25),
+		CFrame.new(0, yWall, L / 2 - 0.125),
+		P.base
 	)
+	kit:box("Visor", Vector3.new(W * 0.8, 0.3, 0.12), CFrame.new(0, H / 2 + wallH - 0.4, front + hoodL), P.dark)
 	kit:box("Floor", Vector3.new(W - 2 * slope, 0.2, compL), CFrame.new(0, H / 2 + 0.1, compZ), P.dark, {
 		collide = true,
 	})

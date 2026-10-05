@@ -531,7 +531,9 @@ def("ATGun", {
 	description = "Emplaced anti-tank gun. Limited traverse, hard-hitting.",
 	maxHealth = 600,
 	armor = { front = 10, side = 2, rear = 2 },
-	weapons = { main = { name = "57mm M1", reload = 4.0, shake = 0.5, recoil = 0, ammo = { AP(110, 560, 1000), HE(57) } } },
+	weapons = {
+		main = { name = "57mm M1", reload = 4.0, shake = 0.5, recoil = 0, ammo = { AP(110, 560, 1000), HE(57) } },
+	},
 	seats = atSeats(),
 })
 
@@ -586,7 +588,11 @@ def("ArmoredCar", {
 		main = { name = "QF 2-pdr", reload = 2.5, shake = 0.4, recoil = 2.5, ammo = { AP(70, 340, 1050), HE(40) } },
 		coax = BESA(),
 	},
-	seats = passengerSeats({ { id = "Driver", role = "driver", exposed = false, weapons = { "main", "coax" } } }, 1, false),
+	seats = passengerSeats(
+		{ { id = "Driver", role = "driver", exposed = false, weapons = { "main", "coax" } } },
+		1,
+		false
+	),
 })
 
 def("Jeep", {
@@ -620,7 +626,9 @@ def("ATGun", {
 	description = "Emplaced anti-tank gun with a low profile.",
 	maxHealth = 600,
 	armor = { front = 10, side = 2, rear = 2 },
-	weapons = { main = { name = "QF 6-pdr", reload = 3.8, shake = 0.5, recoil = 0, ammo = { AP(110, 550, 1050), HE(57) } } },
+	weapons = {
+		main = { name = "QF 6-pdr", reload = 3.8, shake = 0.5, recoil = 0, ammo = { AP(110, 550, 1050), HE(57) } },
+	},
 	seats = atSeats(),
 })
 
@@ -704,7 +712,9 @@ def("ATGun", {
 	description = "Versatile 76mm field gun with a powerful HE shell.",
 	maxHealth = 600,
 	armor = { front = 10, side = 2, rear = 2 },
-	weapons = { main = { name = "76mm ZiS-3", reload = 4.2, shake = 0.55, recoil = 0, ammo = { AP(100, 580, 900), HE(76) } } },
+	weapons = {
+		main = { name = "76mm ZiS-3", reload = 4.2, shake = 0.55, recoil = 0, ammo = { AP(100, 580, 900), HE(76) } },
+	},
 	seats = atSeats(),
 })
 
@@ -765,7 +775,11 @@ def("ArmoredCar", {
 		},
 		coax = REIBEL(),
 	},
-	seats = passengerSeats({ { id = "Driver", role = "driver", exposed = false, weapons = { "main", "coax" } } }, 1, false),
+	seats = passengerSeats(
+		{ { id = "Driver", role = "driver", exposed = false, weapons = { "main", "coax" } } },
+		1,
+		false
+	),
 })
 
 def("Jeep", {
@@ -797,7 +811,9 @@ def("ATGun", {
 	description = "Precise 47mm anti-tank gun.",
 	maxHealth = 600,
 	armor = { front = 10, side = 2, rear = 2 },
-	weapons = { main = { name = "47mm SA37", reload = 3.2, shake = 0.45, recoil = 0, ammo = { AP(85, 450, 1000), HE(47) } } },
+	weapons = {
+		main = { name = "47mm SA37", reload = 3.2, shake = 0.45, recoil = 0, ammo = { AP(85, 450, 1000), HE(47) } },
+	},
 	seats = atSeats(),
 })
 
@@ -878,7 +894,11 @@ def("ArmoredCar", {
 		},
 		coax = MG34(),
 	},
-	seats = passengerSeats({ { id = "Driver", role = "driver", exposed = false, weapons = { "main", "coax" } } }, 1, false),
+	seats = passengerSeats(
+		{ { id = "Driver", role = "driver", exposed = false, weapons = { "main", "coax" } } },
+		1,
+		false
+	),
 })
 
 def("Jeep", {
@@ -922,7 +942,9 @@ def("ATGun", {
 	description = "Powerful emplaced anti-tank gun.",
 	maxHealth = 600,
 	armor = { front = 10, side = 2, rear = 2 },
-	weapons = { main = { name = "7.5cm Pak 40", reload = 4.6, shake = 0.6, recoil = 0, ammo = { AP(130, 620, 1000), HE(75) } } },
+	weapons = {
+		main = { name = "7.5cm Pak 40", reload = 4.6, shake = 0.6, recoil = 0, ammo = { AP(130, 620, 1000), HE(75) } },
+	},
 	seats = atSeats(),
 })
 
@@ -992,7 +1014,9 @@ def("ATGun", {
 	description = "Light, accurate anti-tank gun.",
 	maxHealth = 600,
 	armor = { front = 10, side = 2, rear = 2 },
-	weapons = { main = { name = "47mm Type 1", reload = 3.2, shake = 0.45, recoil = 0, ammo = { AP(80, 440, 1000), HE(47) } } },
+	weapons = {
+		main = { name = "47mm Type 1", reload = 3.2, shake = 0.45, recoil = 0, ammo = { AP(80, 440, 1000), HE(47) } },
+	},
 	seats = atSeats(),
 })
 
@@ -1059,7 +1083,11 @@ def("ArmoredCar", {
 		},
 		coax = BREDA38(),
 	},
-	seats = passengerSeats({ { id = "Driver", role = "driver", exposed = false, weapons = { "main", "coax" } } }, 1, false),
+	seats = passengerSeats(
+		{ { id = "Driver", role = "driver", exposed = false, weapons = { "main", "coax" } } },
+		1,
+		false
+	),
 	unlockLevel = 4,
 })
 
@@ -1091,7 +1119,9 @@ def("ATGun", {
 	description = "Compact infantry/anti-tank gun.",
 	maxHealth = 550,
 	armor = { front = 8, side = 2, rear = 2 },
-	weapons = { main = { name = "47/32 M35", reload = 3.0, shake = 0.45, recoil = 0, ammo = { AP(65, 410, 900), HE(47) } } },
+	weapons = {
+		main = { name = "47/32 M35", reload = 3.0, shake = 0.45, recoil = 0, ammo = { AP(65, 410, 900), HE(47) } },
+	},
 	seats = atSeats(),
 })
 

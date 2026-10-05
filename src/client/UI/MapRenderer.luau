@@ -545,7 +545,7 @@ end
 function MapRenderer:SetSpawnOptions(options: { any }?, selectedId: string?, onClick: ((string) -> ())?)
 	local info = self.info
 	local keep = {}
-	for _, opt in options or {} do
+	for _, opt in (options or {}) :: { any } do
 		if type(opt) == "table" and type(opt.id) == "string" and typeof(opt.position) == "Vector3" and info then
 			keep[opt.id] = true
 			local btn = self.spawnButtons[opt.id]

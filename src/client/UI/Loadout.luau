@@ -331,7 +331,7 @@ function Loadout:_renderList()
 			Text = "",
 			Size = UDim2.new(1, -6, 0, 34),
 			LayoutOrder = i,
-			Variant = selected and nil or "ghost",
+			Variant = if selected then nil else "ghost",
 			Parent = self.list,
 		})
 		if selected then

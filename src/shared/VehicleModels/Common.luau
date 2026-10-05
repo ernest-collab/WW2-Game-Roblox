@@ -200,7 +200,14 @@ function Common.track(kit: Kit, side: number, x: number, groundY: number, t: Tra
 		for i = 1, n do
 			local a = if n == 1 then 0.5 else (i - 1) / (n - 1)
 			local z = first + (last - first) * a
-			kit:cyl("RoadWheel", tw * 0.72, r * 2, CFrame.new(x, yWheel, z), P.wheel, { material = Enum.Material.Metal })
+			kit:cyl(
+				"RoadWheel",
+				tw * 0.72,
+				r * 2,
+				CFrame.new(x, yWheel, z),
+				P.wheel,
+				{ material = Enum.Material.Metal }
+			)
 		end
 	end
 	for i = 1, (t.rollers or 0) do
@@ -322,13 +329,7 @@ function Common.turret(kit: Kit, chassis: BasePart, ringY: number, t: TurretSpec
 			)
 		end
 	elseif shape == "horseshoe" then
-		kit:cyl(
-			"TurretRear",
-			T.Y * 0.98,
-			T.X,
-			tcf * CFrame.new(0, 0, T.Z * 0.15) * Kit.VERTICAL,
-			color
-		)
+		kit:cyl("TurretRear", T.Y * 0.98, T.X, tcf * CFrame.new(0, 0, T.Z * 0.15) * Kit.VERTICAL, color)
 	elseif shape == "open" then
 		-- open-topped turret: the Turret part is the floor/ring; add thin walls and a mesh screen
 		kit:box("TurretWallL", Vector3.new(0.2, T.Y * 0.9, T.Z), tcf * CFrame.new(-T.X / 2, T.Y * 0.4, 0), color)
@@ -400,7 +401,12 @@ function Common.turret(kit: Kit, chassis: BasePart, ringY: number, t: TurretSpec
 
 	-- Gun (Motor6D "GunMotor" pivots at the mantlet centre = trunnion).
 	local M = g.mantlet or Vector3.new(T.X * 0.4, T.Y * 0.55, 0.7)
-	local gunCf = tcf * CFrame.new(0, g.y or -T.Y * 0.05, -(if shape == "round" or shape == "cast" then math.max(T.X, T.Z) / 2 else T.Z / 2) - M.Z / 2 + 0.25)
+	local gunCf = tcf
+		* CFrame.new(
+			0,
+			g.y or -T.Y * 0.05,
+			-(if shape == "round" or shape == "cast" then math.max(T.X, T.Z) / 2 else T.Z / 2) - M.Z / 2 + 0.25
+		)
 	local gun = kit:box("Gun", M, gunCf, color, { noWeld = true })
 	kit:motor("GunMotor", turret, gun)
 	kit.base = gun
@@ -460,13 +466,7 @@ function Common.pintleMG(
 			{ material = Enum.Material.DiamondPlate }
 		)
 	elseif not o.noPost then
-		kit:cyl(
-			"MGPost",
-			height,
-			0.22,
-			CFrame.new(basePos + Vector3.new(0, height / 2, 0)) * Kit.VERTICAL,
-			P.metal
-		)
+		kit:cyl("MGPost", height, 0.22, CFrame.new(basePos + Vector3.new(0, height / 2, 0)) * Kit.VERTICAL, P.metal)
 	end
 	local gunPos = basePos + Vector3.new(0, height, 0)
 	local mount = kit:box("MGMount", Vector3.new(0.3, 0.45, 1.6), CFrame.new(gunPos), P.metal, { noWeld = true })

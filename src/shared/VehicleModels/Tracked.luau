@@ -81,26 +81,11 @@ function Tracked.build(kit: Kit.Kit, s: any, def: any): BuildInfo
 		kit:box("WallRear", Vector3.new(Wu, Hu, wall), CFrame.new(0, yU, uz + Lu / 2 - wall / 2), P.base)
 		kit:box("Deck", Vector3.new(Wu, 0.2, Lu), CFrame.new(0, H / 2 + 0.1, uz), P.dark, { collide = true })
 	else
-		upper = kit:box(
-			"UpperHull",
-			Vector3.new(Wu - 2 * ss, Hu, Lu),
-			CFrame.new(0, yU, uz),
-			P.base,
-			{ collide = true }
-		)
+		upper =
+			kit:box("UpperHull", Vector3.new(Wu - 2 * ss, Hu, Lu), CFrame.new(0, yU, uz), P.base, { collide = true })
 		if ss > 0 then
-			kit:wedge(
-				"SponsonL",
-				Vector3.new(Lu, Hu, ss),
-				CFrame.new(-Wu / 2 + ss / 2, yU, uz) * Kit.FACE_LEFT,
-				P.base
-			)
-			kit:wedge(
-				"SponsonR",
-				Vector3.new(Lu, Hu, ss),
-				CFrame.new(Wu / 2 - ss / 2, yU, uz) * Kit.FACE_RIGHT,
-				P.base
-			)
+			kit:wedge("SponsonL", Vector3.new(Lu, Hu, ss), CFrame.new(-Wu / 2 + ss / 2, yU, uz) * Kit.FACE_LEFT, P.base)
+			kit:wedge("SponsonR", Vector3.new(Lu, Hu, ss), CFrame.new(Wu / 2 - ss / 2, yU, uz) * Kit.FACE_RIGHT, P.base)
 		end
 		-- engine deck grille
 		kit:box(
@@ -133,12 +118,7 @@ function Tracked.build(kit: Kit.Kit, s: any, def: any): BuildInfo
 	end
 	-- driver's visor block on the glacis top edge
 	local frontZ = uz - Lu / 2
-	kit:box(
-		"DriverVisor",
-		Vector3.new(1.3, 0.45, 0.35),
-		CFrame.new(-Wu * 0.22, H / 2 + Hu - 0.2, frontZ - 0.1),
-		P.dark
-	)
+	kit:box("DriverVisor", Vector3.new(1.3, 0.45, 0.35), CFrame.new(-Wu * 0.22, H / 2 + Hu - 0.2, frontZ - 0.1), P.dark)
 	Common.headlights(kit, Vector3.new(0, H / 2 + Hu * 0.3, frontZ - glacis - 0.1), Wu * 0.36)
 	Common.exhausts(kit, Vector3.new(0, H * 0.2, L / 2 + 0.5), W * 0.3)
 
@@ -198,13 +178,7 @@ function Tracked.build(kit: Kit.Kit, s: any, def: any): BuildInfo
 	end
 	if table.find(extras, "hullGun") then
 		-- Char B1 bis 75mm hull howitzer (cosmetic)
-		kit:cyl(
-			"HullGun",
-			3,
-			0.55,
-			CFrame.new(Wu * 0.18, yU - Hu * 0.15, frontZ - glacis - 0.8) * Kit.ALONG_Z,
-			P.metal
-		)
+		kit:cyl("HullGun", 3, 0.55, CFrame.new(Wu * 0.18, yU - Hu * 0.15, frontZ - glacis - 0.8) * Kit.ALONG_Z, P.metal)
 	end
 	if table.find(extras, "antenna") then
 		kit:cyl(

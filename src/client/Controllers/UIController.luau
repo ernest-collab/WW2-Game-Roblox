@@ -48,7 +48,7 @@ local OVERLAY_MENUS = { Settings = true, BigMap = true, Loadout = true }
 local trove = Trove.new()
 local ctx: any = nil
 local components: { [string]: any } = {}
-local openMenus: { [string]: boolean } = {}
+local openMenus: { [string]: boolean? } = {}
 local mouseBound = false
 
 local state = {
@@ -163,7 +163,7 @@ local function setMenu(name: string, open: boolean)
 	if (openMenus[name] == true) == open then
 		return
 	end
-	openMenus[name] = open or nil
+	openMenus[name] = if open then true else nil
 	Bus.fire(open and "MenuOpened" or "MenuClosed", name)
 	updateMouse()
 end

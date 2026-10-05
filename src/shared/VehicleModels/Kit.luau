@@ -142,7 +142,15 @@ function Kit:ball(name: string, diameter: number, cf: CFrame, color: Color3, opt
 end
 
 -- Box stretched between two points (cross-section width along world X when the beam is not vertical).
-function Kit:beam(name: string, a: Vector3, b: Vector3, width: number, thick: number, color: Color3, opts: PartOpts?): Part
+function Kit:beam(
+	name: string,
+	a: Vector3,
+	b: Vector3,
+	width: number,
+	thick: number,
+	color: Color3,
+	opts: PartOpts?
+): Part
 	local mid = (a + b) * 0.5
 	local len = (b - a).Magnitude
 	local cf = CFrame.lookAt(mid, b)

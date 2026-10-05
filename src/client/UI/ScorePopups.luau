@@ -128,7 +128,11 @@ function ScorePopups.new(ctx)
 
 	Remotes.onEvent("Score_Event", function(payload)
 		if type(payload) == "table" then
-			self:AddScore(tostring(payload.reason or ""), tonumber(payload.points) or 0)
+			local reason = tostring(payload.reason or "")
+			if payload.xpOnly then
+				reason ..= " XP" -- round XP awards (not match score)
+			end
+			self:AddScore(reason, tonumber(payload.points) or 0)
 		end
 	end, self.trove)
 	Remotes.onEvent("Combat_Kill", function(payload)
@@ -193,7 +197,9 @@ function ScorePopups:AddScore(reason: string, points: number)
 end
 
 function ScorePopups:ShowKill(victim: any, headshot: boolean)
-	self.bannerName.Text = typeof(victim) == "Instance" and string.upper(victim.DisplayName) or ""
+	self.bannerName.Text = if typeof(victim) == "Instance" and victim:IsA("Player")
+		then string.upper(victim.DisplayName)
+		else ""
 	self.bannerHs.Visible = headshot
 	self.banner.Visible = true
 	self.bannerScale.Scale = 1.25

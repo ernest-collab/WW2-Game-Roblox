@@ -170,7 +170,7 @@ local function validate(def: SettingDef, value: any): (boolean, any)
 		end
 		return false, nil
 	elseif def.kind == "choice" then
-		for _, opt in def.options or {} do
+		for _, opt in (def.options or {}) :: { any } do
 			if opt == value then
 				return true, value
 			end
@@ -178,7 +178,7 @@ local function validate(def: SettingDef, value: any): (boolean, any)
 		-- Numbers may round-trip through JSON as floats.
 		local n = tonumber(value)
 		if n then
-			for _, opt in def.options or {} do
+			for _, opt in (def.options or {}) :: { any } do
 				if opt == n then
 					return true, n
 				end
@@ -246,9 +246,38 @@ function SettingsController.GetDef(key: string): SettingDef?
 	return defsByKey[key]
 end
 
+--[[
+	ProgressionService only accepts flat values (no nested tables), so the per-class loadout table
+	is persisted as string keys: LO_<classId> = "primary|secondary|gadget1|gadget2".
+]]
+local LOADOUT_PREFIX = "LO_"
+local LOADOUT_SLOTS = { "primary", "secondary", "gadget1", "gadget2" }
+
+local function serialize(): { [string]: any }
+	local out = {}
+	for key, value in current do
+		if key ~= "Loadouts" then
+			out[key] = value
+		end
+	end
+	for classId, loadout in current.Loadouts or {} do
+		if type(classId) == "string" and type(loadout) == "table" then
+			local parts = {}
+			for i, slot in LOADOUT_SLOTS do
+				parts[i] = type(loadout[slot]) == "string" and loadout[slot] or ""
+			end
+			local encoded = table.concat(parts, "|")
+			if #encoded <= 64 and #(LOADOUT_PREFIX .. classId) <= 32 then
+				out[LOADOUT_PREFIX .. classId] = encoded
+			end
+		end
+	end
+	return out
+end
+
 function SettingsController.Save()
 	saveScheduled = false
-	task.spawn(Remotes.fire, "Settings_Save", table.clone(current))
+	task.spawn(Remotes.fire, "Settings_Save", serialize())
 end
 
 local function scheduleSave()
@@ -302,7 +331,18 @@ function SettingsController.LoadFrom(saved: any)
 	end
 	for key, value in saved do
 		local def = defsByKey[key]
-		if def then
+		if type(key) == "string" and key:sub(1, #LOADOUT_PREFIX) == LOADOUT_PREFIX and type(value) == "string" then
+			local classId = key:sub(#LOADOUT_PREFIX + 1)
+			local parts = string.split(value, "|")
+			local loadout = {}
+			for i, slot in LOADOUT_SLOTS do
+				if parts[i] and parts[i] ~= "" then
+					loadout[slot] = parts[i]
+				end
+			end
+			current.Loadouts = table.clone(current.Loadouts or {})
+			current.Loadouts[classId] = loadout
+		elseif def then
 			local ok, v = validate(def, value)
 			if ok then
 				current[key] = v
