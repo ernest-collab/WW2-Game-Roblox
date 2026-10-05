@@ -96,7 +96,8 @@ function Physics.new(model: Model, def: any): Rig?
 	end
 
 	local s = chassis.Size
-	local mass = chassis.AssemblyMass
+	-- The chassis is the only massive part; GetMass() is valid even while it is anchored (parked).
+	local mass = chassis:GetMass()
 	local self = setmetatable({
 		model = model,
 		chassis = chassis,

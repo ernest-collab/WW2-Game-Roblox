@@ -141,7 +141,10 @@ function FX.MainGunFired(origin: Vector3, velocity: Vector3, gravityScale: numbe
 			light.Enabled = true
 		end
 		part.CFrame = CFrame.lookAlong(origin, dir)
-		table.insert(active, { part = part, pos = origin, vel = velocity, gravity = gravityScale, age = 0, ignore = ignore })
+		table.insert(
+			active,
+			{ part = part, pos = origin, vel = velocity, gravity = gravityScale, age = 0, ignore = ignore }
+		)
 	end
 end
 

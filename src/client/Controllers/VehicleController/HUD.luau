@@ -41,6 +41,7 @@ export type HUD = typeof(setmetatable(
 		speed: TextLabel,
 		ammo: TextLabel,
 		reloadFill: Frame,
+		reloadBack: Frame,
 		reloadText: TextLabel,
 		heatFill: Frame,
 		heatRow: Frame,
@@ -287,7 +288,7 @@ function HUD.new(playerGui: Instance): HUD
 		TextSize = 14,
 		Text = "",
 	})
-	local _, reloadFill = bar(panel, UDim2.fromOffset(0, 64), UDim2.new(1, -90, 0, 6), WHITE)
+	local reloadBack, reloadFill = bar(panel, UDim2.fromOffset(0, 64), UDim2.new(1, -90, 0, 6), WHITE)
 	local reloadText = label(panel, {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 58),
@@ -318,6 +319,7 @@ function HUD.new(playerGui: Instance): HUD
 		speed = speed,
 		ammo = ammo,
 		reloadFill = reloadFill,
+		reloadBack = reloadBack,
 		reloadText = reloadText,
 		heatFill = heatFill,
 		heatRow = heatRow,
@@ -343,7 +345,7 @@ function HUD.Show(self: HUD, def: any, seatId: string, seatDef: any, gamepad: bo
 	local hasMG = #weapons > (if hasMain then 1 else 0)
 	self.heatRow.Visible = hasMG
 	self.ammo.Visible = #weapons > 0
-	self.reloadFill.Parent.Visible = #weapons > 0
+	self.reloadBack.Visible = #weapons > 0
 	self.reloadText.Visible = #weapons > 0
 	self.crosshair.Visible = #weapons > 0 or seatDef.role == "driver"
 	local hint

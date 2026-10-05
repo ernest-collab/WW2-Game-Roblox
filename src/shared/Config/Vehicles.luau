@@ -38,10 +38,12 @@
 	   With Weapons.vehicleDamage ~500 per rocket a medium tank (1700-2200 hp) dies to 4 side hits,
 	   3 rear hits and ~7 frontal hits; heavies (2400-2600 hp) need 5-6 side / 4 rear hits.
 
-	3. Bullets / vehicle machine guns (opts.penetration supplied, not explosive):
+	3. Bullets / vehicle machine guns (opts.penetration > 1 = armor rating, not explosive):
 	     penetration >= armor[facing] -> amount * PEN_FACING_MULT[facing], else 0.
-	   Plain calls with neither penetration nor explosive (e.g. rifle hits) are scaled by the
-	   vehicle's `smallArmsMult` (0 for armored vehicles, ~0.3 for soft-skins).
+	   opts.penetration values <= 1 are CombatService's 0..1 cover-penetration factor and are ignored.
+	   Plain small-arms calls (no armor-rating penetration, not explosive) arrive already scaled by
+	   CombatService; vehicles with `smallArmsMult` = 0 (all armored ones) ignore them entirely,
+	   soft-skins (jeeps, trucks, carriers, AT guns) take the amount as given.
 
 	Below CRITICAL_FRACTION (25 %) health a vehicle smokes, its top speed drops to
 	CRITICAL_SPEED_MULT and it shows "Critical" on the HUD. Engineers repair via GadgetService ->

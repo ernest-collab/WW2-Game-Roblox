@@ -165,6 +165,7 @@ local charRecords: { [Player]: CharRecord } = {}
 local shells: { Shell } = {}
 local rng = Random.new()
 local vehicleFolder: Folder
+local currentMapInfo: any = nil
 
 local remotes: {
 	Request: RemoteEvent,
@@ -1207,6 +1208,7 @@ local function spawnSlot(slot: Slot)
 end
 
 function VehicleService.ClearAll()
+	currentMapInfo = nil
 	for _, st in table.clone(vehicles) do
 		removeVehicle(st)
 	end
@@ -1215,7 +1217,12 @@ function VehicleService.ClearAll()
 end
 
 function VehicleService.SpawnTeamVehicles(mapInfo: any)
+	-- MapLoaded and RoundService may both request the same map: spawn only once per map info.
+	if mapInfo ~= nil and mapInfo == currentMapInfo and #slots > 0 then
+		return
+	end
 	VehicleService.ClearAll()
+	currentMapInfo = mapInfo
 	if type(mapInfo) ~= "table" or type(mapInfo.vehicleSpawns) ~= "table" then
 		return
 	end
