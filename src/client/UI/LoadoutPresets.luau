@@ -140,7 +140,10 @@ function LoadoutPresets:_render()
 			Kind = if preset then "heading" else "type",
 			Text = if locked then "LOCKED · EXTRA PRESETS PASS" elseif preset then describe(preset) else "EMPTY",
 			TextSize = if preset and not locked then 14 else 12,
-			TextColor3 = if locked then Theme.Colors.Locked elseif preset then Theme.Colors.Text else Theme.Colors.TextDim,
+			TextColor3 = if locked
+				then Theme.Colors.Locked
+				elseif preset then Theme.Colors.Text
+				else Theme.Colors.TextDim,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			Position = UDim2.fromOffset(28, 0),

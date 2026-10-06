@@ -10,13 +10,13 @@
 
 	Public API
 	  UIController.IsMenuOpen() -> boolean   -- true while any menu wants the mouse / blocks input
-	  UIController.OpenMenu(name) / CloseMenu(name) / ToggleMenu(name)   ("Settings"|"BigMap"|"Loadout")
+	  UIController.OpenMenu(name) / CloseMenu(name) / ToggleMenu(name)   ("Settings"|"BigMap"|"Loadout"|"Shop")
 	  UIController.ToggleScoreboard()
 	  UIController.GetProgression() -> ProgressionData?    UIController.GetUnlocked() -> {[id]=true}
 	  UIController.RequestDeploy(classId, loadout, spawnId)
 	  UIController.Notify(text, kind?, duration?)          -- local toast
 	Bus fired: MenuOpened(name) / MenuClosed(name), Deployed(character).
-	Menus: "Deploy", "Intermission", "RoundEnd", "Settings", "BigMap", "Loadout".
+	Menus: "Deploy", "Intermission", "RoundEnd", "Settings", "BigMap", "Loadout", "Shop" (store, K key).
 
 	ScreenGuis (DisplayOrder): WW2_FX 2 (crosshair, hitmarker, damage, vignette, scope; full screen),
 	WW2_HUD 5 (safe area), WW2_Backdrop 9 (menu dimmers), WW2_Menus 10, WW2_Overlay 15.
@@ -43,7 +43,7 @@ local UIController = {}
 local LOCAL_PLAYER = Players.LocalPlayer
 local DEATH_CAM_TIME = 2
 local MOUSE_STEP = "WW2_UIMouseUnlock"
-local OVERLAY_MENUS = { Settings = true, BigMap = true, Loadout = true }
+local OVERLAY_MENUS = { Settings = true, BigMap = true, Loadout = true, Shop = true }
 
 local trove = Trove.new()
 local ctx: any = nil
@@ -193,6 +193,8 @@ function UIController.OpenMenu(name: string)
 		call("bigMap", "SetVisible", true)
 	elseif name == "Loadout" then
 		call("deploy", "Open", "edit")
+	elseif name == "Shop" then
+		call("shop", "SetVisible", true)
 	end
 	setMenu(name, true)
 	refreshVisibility()
@@ -208,6 +210,12 @@ function UIController.CloseMenu(name: string)
 		call("bigMap", "SetVisible", false)
 	elseif name == "Loadout" then
 		call("deploy", "Close")
+	elseif name == "Shop" then
+		call("shop", "SetVisible", false)
+		-- Purchases may have unlocked weapons: refresh the loadout picker if it is showing.
+		if call("deploy", "IsOpen") then
+			call("deploy", "Refresh")
+		end
 	end
 	setMenu(name, false)
 	refreshVisibility()
@@ -288,6 +296,7 @@ function refreshVisibility()
 	call("hitmarker", "SetVisible", hud)
 	call("damage", "SetVisible", hud)
 	call("notifications", "SetHudActive", hud)
+	call("shop", "SetHudVisible", hud)
 	local scoreboard = (state.scoreboardHeld or state.scoreboardToggled)
 		and (hud or base == "DeathCam" or base == "Deploy")
 		and not openMenus.Settings
@@ -437,6 +446,8 @@ local function onInputBegan(input: InputObject, gameProcessed: boolean)
 		UIController.ToggleMenu("Settings")
 	elseif key == Enum.KeyCode.L then
 		UIController.ToggleMenu("Loadout")
+	elseif key == Enum.KeyCode.K then
+		UIController.ToggleMenu("Shop")
 	elseif key == Enum.KeyCode.Return or key == Enum.KeyCode.KeypadEnter then
 		if state.base == "Deploy" or openMenus.Loadout then
 			call("deploy", "TryDeploy")
@@ -446,7 +457,7 @@ local function onInputBegan(input: InputObject, gameProcessed: boolean)
 			call("deploy", "DismissRevive")
 		end
 	elseif key == Enum.KeyCode.ButtonB or key == Enum.KeyCode.Backspace then
-		for _, name in { "Settings", "BigMap", "Loadout" } do
+		for _, name in { "Settings", "Shop", "BigMap", "Loadout" } do
 			if openMenus[name] then
 				UIController.CloseMenu(name)
 				break
@@ -521,6 +532,7 @@ function UIController:Init()
 	components.roundEnd = safeNew("RoundEnd", ctx)
 	components.bigMap = safeNew("BigMap", ctx)
 	components.settings = safeNew("SettingsMenu", ctx)
+	components.shop = safeNew("Shop", ctx)
 	components.scoreboard = safeNew("Scoreboard", ctx)
 	components.notifications = safeNew("Notifications", ctx)
 end

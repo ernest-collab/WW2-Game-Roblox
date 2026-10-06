@@ -15,8 +15,9 @@
 	Builders live in ServerScriptService.Server.Maps.<builder> and implement
 	  Builder.Build(parent: Folder, mapDef) -> MapInfo
 
-	Out of bounds: a living player outside MapInfo.bounds (XZ rectangle, or below its bottom) gets a
-	Notify warning with a countdown and dies after MapInfo.outOfBounds seconds (default 10).
+	Out of bounds: enforced by Gameplay's SpawnService (player attribute `OutOfBounds`). MapService
+	only runs its own fallback check (Notify countdown, death after MapInfo.outOfBounds seconds)
+	when SpawnService is not present.
 ]]
 
 local HttpService = game:GetService("HttpService")
@@ -312,6 +313,11 @@ end
 local function tickBounds()
 	local info = current
 	if not info or loading then
+		return
+	end
+	-- Gameplay's SpawnService owns out-of-bounds (player attribute `OutOfBounds`); this is only a
+	-- fallback so players are never killed twice.
+	if script.Parent:FindFirstChild("SpawnService") then
 		return
 	end
 	local limit = info.outOfBounds or DEFAULT_OOB

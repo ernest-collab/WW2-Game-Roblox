@@ -293,6 +293,10 @@ function Scoreboard:Refresh()
 			local squadMate = not isMe and mySquad ~= 0 and squad == mySquad and side == mySide
 			cells.name.TextColor3 = isMe and Theme.Colors.Accent
 				or (squadMate and Theme.Colors.Squad or Theme.Colors.Text)
+			-- VIP game pass: gold name (Monetization; player attribute `VIP`).
+			if p:GetAttribute("VIP") == true and not isMe and not squadMate then
+				cells.name.TextColor3 = Color3.fromRGB(255, 204, 64)
+			end
 			row.stroke.Transparency = isMe and 0 or 1
 			row.frame.BackgroundColor3 = isMe and Theme.Colors.OliveLight or Theme.Colors.Panel
 			local alive = p:GetAttribute("Alive") ~= false

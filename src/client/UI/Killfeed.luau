@@ -101,6 +101,21 @@ function Killfeed:_buildRow(i: number)
 	return { frame = row, stroke = stroke, killer = killer, weapon = weapon, hs = hs, victim = victim, serial = 0 }
 end
 
+-- VIP game pass (Monetization): gold outline on the name; the side colour stays for readability.
+local VIP_GOLD = Color3.fromRGB(255, 204, 64)
+local function vipStroke(label: TextLabel, p: any)
+	local base = label:GetAttribute("BaseStrokeT")
+	if type(base) ~= "number" then
+		base = label.TextStrokeTransparency
+		label:SetAttribute("BaseStrokeT", base)
+		label:SetAttribute("BaseStrokeC", label.TextStrokeColor3)
+	end
+	local isVip = typeof(p) == "Instance" and p:IsA("Player") and p:GetAttribute("VIP") == true
+	local baseColor = label:GetAttribute("BaseStrokeC")
+	label.TextStrokeColor3 = if isVip then VIP_GOLD elseif typeof(baseColor) == "Color3" then baseColor else Color3.new()
+	label.TextStrokeTransparency = if isVip then 0.2 else base
+end
+
 local function nameOf(p: any): string
 	if typeof(p) == "Instance" and p:IsA("Player") then
 		return p.DisplayName
@@ -145,6 +160,8 @@ function Killfeed:Push(payload)
 	row.hs.Visible = payload.headshot == true
 	row.victim.Text = nameOf(victim)
 	row.victim.TextColor3 = Theme.sideColor(payload.victimSide)
+	vipStroke(row.killer, if suicide then nil else killer)
+	vipStroke(row.victim, victim)
 
 	local involved = killer == LOCAL_PLAYER or victim == LOCAL_PLAYER
 	row.stroke.Transparency = involved and 0 or 1

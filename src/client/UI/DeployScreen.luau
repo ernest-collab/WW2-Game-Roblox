@@ -246,21 +246,29 @@ function DeployScreen:_buildTopBar()
 	store.Activated:Connect(function()
 		self.ctx.ui.OpenMenu("Shop")
 	end)
-	self.presets = LoadoutPresets.new(self.ctx, bar, self.root, {
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -314, 0.5, 0),
-		Size = UDim2.fromOffset(86, 36),
-	}, UDim2.new(1, -314, 0, 56), function()
-		return self.classId, self.loadout:Get()
-	end, function(classId, loadout)
-		if not Classes.byId[classId] or not self.classSelect:IsUnlocked(classId) then
-			return
+	self.presets = LoadoutPresets.new(
+		self.ctx,
+		bar,
+		self.root,
+		{
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -314, 0.5, 0),
+			Size = UDim2.fromOffset(86, 36),
+		},
+		UDim2.new(1, -314, 0, 56),
+		function()
+			return self.classId, self.loadout:Get()
+		end,
+		function(classId, loadout)
+			if not Classes.byId[classId] or not self.classSelect:IsUnlocked(classId) then
+				return
+			end
+			local all = table.clone(self.ctx.settings.Get("Loadouts") or {})
+			all[classId] = loadout
+			self.ctx.settings.Set("Loadouts", all)
+			self:_selectClass(classId)
 		end
-		local all = table.clone(self.ctx.settings.Get("Loadouts") or {})
-		all[classId] = loadout
-		self.ctx.settings.Set("Loadouts", all)
-		self:_selectClass(classId)
-	end)
+	)
 end
 
 function DeployScreen:_buildLeft(body: Frame)
@@ -863,6 +871,9 @@ function DeployScreen:Open(mode: "deploy" | "edit")
 end
 
 function DeployScreen:Close()
+	if self.presets then
+		self.presets:SetOpen(false)
+	end
 	self.visible = false
 	self.root.Visible = false
 	self.backdrop.Visible = false
@@ -881,6 +892,9 @@ end
 
 function DeployScreen:Destroy()
 	self.trove:Clean()
+	if self.presets then
+		self.presets:Destroy()
+	end
 	self.loadout:Destroy()
 	self.mapRenderer:Destroy()
 	self.root:Destroy()

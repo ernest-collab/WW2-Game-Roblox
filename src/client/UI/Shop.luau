@@ -534,9 +534,15 @@ function Shop:_renderUnlocks(order: number)
 	self:_section("Instant weapon unlocks", order)
 	self:_note(
 		"Get early access to a weapon above your level. It is the same weapon everyone unlocks by playing — this only saves time. "
-			.. (if tokens > 0
-				then string.format("You have %d Unlock Token%s: unlocking uses a token.", tokens, tokens == 1 and "" or "s")
-				else "Weapons bought this way stay unlocked forever."),
+			.. (
+				if tokens > 0
+					then string.format(
+						"You have %d Unlock Token%s: unlocking uses a token.",
+						tokens,
+						tokens == 1 and "" or "s"
+					)
+					else "Weapons bought this way stay unlocked forever."
+			),
 		order + 1,
 		if tokens > 0 then Theme.Colors.Good else nil
 	)
@@ -663,7 +669,10 @@ function Shop:_cosmeticRow(order: number, title: string, items: { any }, selecte
 			Kind = "heading",
 			Text = string.upper(item.name),
 			TextSize = 15,
-			TextColor3 = if isSelected then Theme.Colors.Accent elseif item.owned then Theme.Colors.Text else Theme.Colors.TextDim,
+			TextColor3 = if isSelected
+				then Theme.Colors.Accent
+				elseif item.owned then Theme.Colors.Text
+				else Theme.Colors.TextDim,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			Position = UDim2.fromOffset(8, 4),
 			Size = UDim2.new(1, -16, 0, 22),
@@ -760,7 +769,11 @@ function Shop:Render()
 		return
 	end
 	if s.available == false then
-		self:_note("The store is unavailable right now (Roblox data services). Please try again later.", 1, Theme.Colors.Warning)
+		self:_note(
+			"The store is unavailable right now (Roblox data services). Please try again later.",
+			1,
+			Theme.Colors.Warning
+		)
 	end
 	if #(s.passes or {}) == 0 and #(s.products or {}) == 0 and (tonumber(s.tokens) or 0) <= 0 then
 		self:_note("The store is not open yet. Check back soon, soldier.", 2)
