@@ -450,6 +450,14 @@ local function prepareWeapon(weaponId: string): Weapon?
 	if not ok or typeof(model) ~= "Instance" or not model:IsA("Model") then
 		return nil
 	end
+	-- Cosmetic weapon camo (Monetization; local player attribute `Camo`, set by the server when owned).
+	local camo = Players.LocalPlayer:GetAttribute("Camo")
+	local cosmetics = Shared:FindFirstChild("Cosmetics")
+	if type(camo) == "string" and camo ~= "" and cosmetics and cosmetics:IsA("ModuleScript") then
+		pcall(function()
+			(require(cosmetics) :: any).applyCamo(model, camo)
+		end)
+	end
 	local handle = model.PrimaryPart or model:FindFirstChild("Handle")
 	if not (handle and handle:IsA("BasePart")) then
 		model:Destroy()

@@ -493,6 +493,28 @@ local function handleRequest(player: Player, payload: any): (boolean, string?)
 	local factionAttr = player:GetAttribute("Faction")
 	local faction: string? = if type(factionAttr) == "string" then factionAttr else nil
 	local loadout = Progression.validateLoadout(classId, faction, level, payload.loadout)
+	-- Weapons bought early (MonetizationService "Instant Weapon Unlock") skip only the level check:
+	-- class slot category + faction rules still apply.
+	if type(payload.loadout) == "table" then
+		for _, slot in Progression.SLOTS do
+			local wanted = payload.loadout[slot]
+			if type(wanted) == "string" and wanted ~= "" and (loadout :: any)[slot] ~= wanted then
+				local _, purchased = callService("MonetizationService", "IsWeaponPurchased", player, wanted)
+				local allowed = false
+				if purchased == true then
+					for _, def in Progression.allowedWeapons(classId, slot, faction, math.huge) do
+						if def.id == wanted then
+							allowed = true
+							break
+						end
+					end
+				end
+				if allowed then
+					(loadout :: any)[slot] = wanted
+				end
+			end
+		end
+	end
 
 	local spawnId = payload.spawnId
 	if type(spawnId) ~= "string" or #spawnId > 32 then

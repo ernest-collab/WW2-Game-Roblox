@@ -23,6 +23,25 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Factions = require(Shared.Config.Factions)
 
+-- Optional Monetization cosmetics (Uniform Pack): player attribute `UniformVariant`.
+local function uniformOverride(character: Model, f: Factions.Faction): Factions.Faction
+	local player = Players:GetPlayerFromCharacter(character)
+	local variant = player and player:GetAttribute("UniformVariant")
+	local module = Shared:FindFirstChild("Cosmetics")
+	if type(variant) ~= "string" or variant == "" or not module or not module:IsA("ModuleScript") then
+		return f
+	end
+	local ok, colors = pcall(function()
+		return (require(module) :: any).uniformColors(f.colors, variant)
+	end)
+	if not ok or type(colors) ~= "table" then
+		return f
+	end
+	local copy = table.clone(f)
+	copy.colors = colors
+	return copy
+end
+
 local OutfitService = {}
 
 local V3 = Vector3.new
@@ -544,6 +563,7 @@ function OutfitService.Apply(character: Model, factionId: string, classId: strin
 		return
 	end
 	classId = if type(classId) == "string" then classId else "Rifleman"
+	f = uniformOverride(character, f)
 
 	-- strip stock appearance
 	for _, child in character:GetChildren() do

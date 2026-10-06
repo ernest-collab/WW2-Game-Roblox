@@ -311,6 +311,14 @@ local function attachWeaponModel(st: PlayerState, weaponId: string)
 	end
 	model.Name = "EquippedWeaponModel"
 	model:SetAttribute("WeaponId", weaponId)
+	-- Cosmetic weapon camo (Monetization; player attribute `Camo` is only set when owned).
+	local camo = st.player:GetAttribute("Camo")
+	local cosmetics = Shared:FindFirstChild("Cosmetics")
+	if type(camo) == "string" and camo ~= "" and cosmetics and cosmetics:IsA("ModuleScript") then
+		pcall(function()
+			(require(cosmetics) :: any).applyCamo(model, camo)
+		end)
+	end
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
 			d.Anchored = false

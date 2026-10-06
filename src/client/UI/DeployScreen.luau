@@ -35,6 +35,7 @@ local UI = script.Parent
 local ClassSelect = require(UI.ClassSelect)
 local Data = require(UI.Data)
 local Loadout = require(UI.Loadout)
+local LoadoutPresets = require(UI.LoadoutPresets)
 local MapRenderer = require(UI.MapRenderer)
 local Remotes = require(UI.Remotes)
 local Theme = require(UI.Theme)
@@ -230,6 +231,35 @@ function DeployScreen:_buildTopBar()
 	})
 	gear.Activated:Connect(function()
 		self.ctx.ui.OpenMenu("Settings")
+	end)
+
+	-- Store + loadout presets (Monetization team).
+	local store = Theme.button({
+		Text = "STORE",
+		TextSize = 16,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -222, 0.5, 0),
+		Size = UDim2.fromOffset(86, 36),
+		Variant = "primary",
+		Parent = bar,
+	})
+	store.Activated:Connect(function()
+		self.ctx.ui.OpenMenu("Shop")
+	end)
+	self.presets = LoadoutPresets.new(self.ctx, bar, self.root, {
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -314, 0.5, 0),
+		Size = UDim2.fromOffset(86, 36),
+	}, UDim2.new(1, -314, 0, 56), function()
+		return self.classId, self.loadout:Get()
+	end, function(classId, loadout)
+		if not Classes.byId[classId] or not self.classSelect:IsUnlocked(classId) then
+			return
+		end
+		local all = table.clone(self.ctx.settings.Get("Loadouts") or {})
+		all[classId] = loadout
+		self.ctx.settings.Set("Loadouts", all)
+		self:_selectClass(classId)
 	end)
 end
 

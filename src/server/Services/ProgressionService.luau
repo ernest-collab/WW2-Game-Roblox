@@ -30,6 +30,11 @@
 	  ProgressionService.GetData(player) -> ProgressionData?
 	  ProgressionService.GetSettings(player) -> table
 	  ProgressionService.IsUnlocked(player, weaponId) -> boolean
+	  ProgressionService.PushUpdate(player)          -- re-send Progression_Updated (Monetization)
+
+	Monetization (guarded, optional): AddXP multiplies XP by MonetizationService.GetXPMultiplier
+	(match Score is never multiplied); weapons bought with the Instant Weapon Unlock product count as
+	unlocked in ProgressionData.unlocked and IsUnlocked.
 ]]
 
 local DataStoreService = game:GetService("DataStoreService")
@@ -76,6 +81,30 @@ type Profile = {
 }
 
 local profiles: { [Player]: Profile } = {}
+
+-- Optional MonetizationService (XP multiplier, purchased weapon unlocks). Required lazily.
+local monetization: any = nil
+local function getMonetization(): any
+	if monetization == nil then
+		local module = script.Parent:FindFirstChild("MonetizationService")
+		local ok, result = pcall(function()
+			return if module and module:IsA("ModuleScript") then require(module) else false
+		end)
+		monetization = if ok and type(result) == "table" then result else false
+	end
+	return monetization or nil
+end
+
+local function purchasedWeapons(player: Player): { [string]: boolean }
+	local m = getMonetization()
+	if m and m.GetPurchasedWeapons then
+		local ok, result = pcall(m.GetPurchasedWeapons, player)
+		if ok and type(result) == "table" then
+			return result
+		end
+	end
+	return {}
+end
 local store: DataStore? = nil
 local memoryMode = false
 local memoryStore: { [string]: SaveData } = {}
@@ -209,12 +238,16 @@ end
 
 local function buildProgressionData(profile: Profile)
 	local level, into, toNext = Progression.levelFromXP(profile.data.xp)
+	local unlocked = Progression.unlockedWeapons(level)
+	for weaponId in purchasedWeapons(profile.player) do
+		unlocked[weaponId] = true
+	end
 	return {
 		level = level,
 		xp = into,
 		xpToNext = toNext,
 		totalXP = profile.data.xp,
-		unlocked = Progression.unlockedWeapons(level),
+		unlocked = unlocked,
 		weaponKills = table.clone(profile.data.weaponKills),
 		settings = deepCopy(profile.data.settings),
 		stats = table.clone(profile.data.stats),
@@ -503,6 +536,13 @@ function ProgressionService.AddXP(player: Player, amount: number, _reason: strin
 	if not profile or type(amount) ~= "number" or amount ~= amount or amount <= 0 then
 		return
 	end
+	local m = getMonetization()
+	if m and m.GetXPMultiplier then
+		local ok, mult = pcall(m.GetXPMultiplier, player)
+		if ok and type(mult) == "number" and mult == mult and mult >= 1 and mult <= 5 then
+			amount *= mult
+		end
+	end
 	amount = math.floor(amount)
 	if not profile.loaded then
 		profile.pending.xp += amount
@@ -562,7 +602,14 @@ function ProgressionService.IsUnlocked(player: Player, weaponId: string): boolea
 		return false
 	end
 	local need = if type(def.unlockLevel) == "number" then def.unlockLevel else 1
-	return ProgressionService.GetLevel(player) >= need
+	return ProgressionService.GetLevel(player) >= need or purchasedWeapons(player)[weaponId] == true
+end
+
+function ProgressionService.PushUpdate(player: Player)
+	local profile = profiles[player]
+	if profile then
+		queueUpdate(profile)
+	end
 end
 
 ---------------------------------------------------------------------------------------------------
