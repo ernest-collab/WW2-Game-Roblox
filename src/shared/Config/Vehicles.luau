@@ -717,7 +717,7 @@ def("ATGun", {
 	maxHealth = 600,
 	armor = { front = 10, side = 2, rear = 2 },
 	weapons = {
-		main = { name = "76mm ZiS-3", reload = 4.2, shake = 0.55, recoil = 0, ammo = { AP(100, 580, 900), HE(76) } },
+		main = { name = "76mm ZiS-3", reload = 4.2, shake = 0.55, recoil = 0, ammo = { AP(110, 580, 900), HE(76) } },
 	},
 	seats = atSeats(),
 })
@@ -816,7 +816,7 @@ def("ATGun", {
 	maxHealth = 600,
 	armor = { front = 10, side = 2, rear = 2 },
 	weapons = {
-		main = { name = "47mm SA37", reload = 3.2, shake = 0.45, recoil = 0, ammo = { AP(85, 450, 1000), HE(47) } },
+		main = { name = "47mm SA37", reload = 3.2, shake = 0.45, recoil = 0, ammo = { AP(110, 550, 1000), HE(47) } },
 	},
 	seats = atSeats(),
 })
@@ -1019,7 +1019,7 @@ def("ATGun", {
 	maxHealth = 600,
 	armor = { front = 10, side = 2, rear = 2 },
 	weapons = {
-		main = { name = "47mm Type 1", reload = 3.2, shake = 0.45, recoil = 0, ammo = { AP(80, 440, 1000), HE(47) } },
+		main = { name = "47mm Type 1", reload = 3.2, shake = 0.45, recoil = 0, ammo = { AP(110, 550, 1000), HE(47) } },
 	},
 	seats = atSeats(),
 })
@@ -1124,7 +1124,7 @@ def("ATGun", {
 	maxHealth = 550,
 	armor = { front = 8, side = 2, rear = 2 },
 	weapons = {
-		main = { name = "47/32 M35", reload = 3.0, shake = 0.45, recoil = 0, ammo = { AP(65, 410, 900), HE(47) } },
+		main = { name = "47/32 M35", reload = 3.0, shake = 0.45, recoil = 0, ammo = { AP(110, 550, 900), HE(47) } },
 	},
 	seats = atSeats(),
 })

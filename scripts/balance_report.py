@@ -693,6 +693,14 @@ def section_vehicles(data: dict):
             r = shell_hits(data, ap, b, "rear")[0]
             if not (3 <= f <= 5 and 2 <= s <= 3 and 1 <= r <= 2):
                 bad.append(f"tank {a['id']} vs {b['id']}: {f}/{s}/{r} AP shots (want 3-5/2-3/1-2)")
+    # Emplaced AT guns cannot flank, so every level-1 gun must defeat every level-1 medium front.
+    for g in vlist(data, ("AT",)):
+        if g["unlockLevel"] > 1 or not main_gun(g):
+            continue
+        ap = main_gun(g)["ammo"][0]
+        for b in l1_mediums:
+            if shell_hits(data, ap, b, "front")[1] != "P":
+                bad.append(f"AT gun {g['id']} cannot penetrate the front of {b['id']}")
     heavies = [v for v in vlist(data, ("Tank",)) if v["armor"]["front"] >= 110]
     for h in heavies:
         for a in l1_mediums:
