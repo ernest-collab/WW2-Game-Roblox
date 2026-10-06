@@ -26,17 +26,19 @@
 	     (impact = angle between shell path and the struck surface normal; softened for arcade)
 	     impact >= RICOCHET_ANGLE and penetration < effective * 1.5   -> RICOCHET   (no damage)
 	     penetration >= effective                                     -> PENETRATION
-	         damage = shell.damage * PEN_FACING_MULT[facing]  (front 1.0, side 1.15, rear 1.35)
+	         damage = shell.damage * PEN_FACING_MULT[facing]  (front 1.0, side 1.25, rear 1.7)
 	     otherwise                                                    -> NON-PENETRATION
 	         damage = shell.damage * NONPEN_FRACTION[shell.kind]  (AP 10 %, HE 30 %)
-	   e.g. a 75 mm AP round (600 dmg) kills a 2000 hp medium tank in 4 frontal / 3 side or rear pens.
+	   e.g. a level-1 AP round (600 dmg) kills a 1900-2000 hp medium tank in 4 frontal / 3 side / 2 rear
+	   pens (docs/BALANCE.md; checked by scripts/balance_report.py).
 
 	2. Infantry anti-tank weapons / explosions (CombatService -> ApplyDamage with opts.explosive):
 	     damage = amount * EXPLOSIVE_FACING_MULT[facing] (front 0.6, side 1.0, rear 1.4, top 1.4)
 	     If opts.penetration is supplied too (HEAT), a hit that fails to beat armor[facing] only deals
 	     HEAT_NONPEN_FRACTION (25 %).
-	   With Weapons.vehicleDamage ~500 per rocket a medium tank (1700-2200 hp) dies to 4 side hits,
-	   3 rear hits and ~7 frontal hits; heavies (2400-2600 hp) need 5-6 side / 4 rear hits.
+	   With Weapons.vehicleDamage ~580-630 per rocket a medium tank (1900-2000 hp) dies to 4 side hits,
+	   3 rear hits and 6 frontal hits; heavies (2200-2600 hp) need 4-5 side / 3-4 rear hits and light
+	   vehicles (<= 1150 hp) die to 2 side hits.
 
 	3. Bullets / vehicle machine guns (opts.penetration > 1 = armor rating, not explosive):
 	     penetration >= armor[facing] -> amount * PEN_FACING_MULT[facing], else 0.
@@ -448,7 +450,7 @@ def("MediumTank", {
 			reload = 4.2,
 			shake = 0.7,
 			recoil = 5,
-			ammo = { AP(95, 600, 900), HE(75) },
+			ammo = { AP(110, 600, 900), HE(75) },
 		},
 		coax = M1919(),
 		hullMG = withCone(M1919(), BOW),
@@ -461,7 +463,7 @@ def("LightTank", {
 	name = "M5A1 Stuart",
 	factions = { "US" },
 	description = "Fast, nimble light tank. Its 37mm only threatens enemy armor from the flanks.",
-	maxHealth = 1400,
+	maxHealth = 1100,
 	armor = { front = 50, side = 28, rear = 25 },
 	speed = 40,
 	weapons = {
@@ -478,7 +480,7 @@ def("ArmoredCar", {
 	name = "M8 Greyhound",
 	factions = { "US" },
 	description = "Six-wheeled scout car with a 37mm gun and a ring-mounted .50 cal.",
-	maxHealth = 1200,
+	maxHealth = 1100,
 	armor = { front = 25, side = 14, rear = 12 },
 	speed = 52,
 	weapons = {
@@ -554,7 +556,7 @@ def("MediumTank", {
 	acceleration = 14,
 	turretTraverse = 34,
 	weapons = {
-		main = { name = "QF 75mm", reload = 4.0, shake = 0.7, recoil = 5, ammo = { AP(92, 580, 900), HE(75) } },
+		main = { name = "QF 75mm", reload = 4.0, shake = 0.7, recoil = 5, ammo = { AP(110, 600, 900), HE(75) } },
 		coax = BESA(),
 		hullMG = withCone(BESA(), BOW),
 	},
@@ -567,11 +569,11 @@ def("HeavyTank", {
 	factions = { "UK" },
 	description = "Infantry tank with immense armor and a modest gun. Slow but very hard to stop.",
 	maxHealth = 2600,
-	armor = { front = 130, side = 90, rear = 60 },
+	armor = { front = 140, side = 90, rear = 60 },
 	speed = 20,
 	turretTraverse = 24,
 	weapons = {
-		main = { name = "QF 75mm", reload = 4.6, shake = 0.7, recoil = 4, ammo = { AP(92, 560, 900), HE(75) } },
+		main = { name = "QF 75mm", reload = 4.6, shake = 0.7, recoil = 4, ammo = { AP(110, 600, 900), HE(75) } },
 		coax = BESA(),
 		hullMG = withCone(BESA(), BOW),
 	},
@@ -644,7 +646,7 @@ def("MediumTank", {
 	factions = { "USSR" },
 	description = "Sloped armor, wide tracks and an 85mm gun. Excellent cross-country.",
 	maxHealth = 2000,
-	armor = { front = 100, side = 55, rear = 45 },
+	armor = { front = 95, side = 55, rear = 45 },
 	speed = 34,
 	turretTraverse = 28,
 	weapons = {
@@ -661,10 +663,10 @@ def("HeavyTank", {
 	factions = { "USSR" },
 	description = "Heavily armored breakthrough tank. Its 76mm gun struggles against late-war armor.",
 	maxHealth = 2600,
-	armor = { front = 110, side = 80, rear = 65 },
+	armor = { front = 135, side = 80, rear = 65 },
 	turretTraverse = 22,
 	weapons = {
-		main = { name = "76mm ZiS-5", reload = 5.0, shake = 0.75, recoil = 5, ammo = { AP(98, 600, 900), HE(76) } },
+		main = { name = "76mm ZiS-5", reload = 5.0, shake = 0.75, recoil = 5, ammo = { AP(110, 600, 900), HE(76) } },
 		coax = DT(),
 		hullMG = withCone(DT(), BOW),
 	},
@@ -729,12 +731,12 @@ def("HeavyTank", {
 	name = "Char B1 bis",
 	factions = { "FR" },
 	description = "Thick-skinned heavy tank with a 47mm turret gun. Slow and steady.",
-	maxHealth = 2400,
-	armor = { front = 75, side = 60, rear = 55 },
+	maxHealth = 2000,
+	armor = { front = 95, side = 55, rear = 45 },
 	speed = 20,
 	turretTraverse = 25,
 	weapons = {
-		main = { name = "47mm SA35", reload = 3.2, shake = 0.5, recoil = 3, ammo = { AP(75, 430, 950), HE(75) } },
+		main = { name = "47mm SA35", reload = 4.4, shake = 0.5, recoil = 3, ammo = { AP(110, 600, 950), HE(75) } },
 		coax = REIBEL(),
 		hullMG = withCone(REIBEL(), BOW),
 	},
@@ -746,11 +748,11 @@ def("MediumTank", {
 	name = "Somua S35",
 	factions = { "FR" },
 	description = "Well-armored cavalry tank with a cast hull and a quick 47mm gun.",
-	maxHealth = 1800,
-	armor = { front = 60, side = 42, rear = 35 },
+	maxHealth = 1900,
+	armor = { front = 85, side = 42, rear = 35 },
 	speed = 30,
 	weapons = {
-		main = { name = "47mm SA35", reload = 3.0, shake = 0.5, recoil = 3, ammo = { AP(75, 420, 950), HE(47) } },
+		main = { name = "47mm SA35", reload = 3.6, shake = 0.5, recoil = 3, ammo = { AP(110, 600, 950), HE(47) } },
 		coax = REIBEL(),
 		hullMG = withCone(REIBEL(), BOW),
 	},
@@ -864,7 +866,7 @@ def("HeavyTank", {
 	factions = { "DE" },
 	description = "Feared heavy tank with the 88. Slow turret and long reload: flank it.",
 	maxHealth = 2600,
-	armor = { front = 120, side = 85, rear = 80 },
+	armor = { front = 140, side = 85, rear = 60 },
 	speed = 22,
 	turretTraverse = 18,
 	weapons = {
@@ -958,13 +960,13 @@ def("MediumTank", {
 	id = "ChiHa",
 	name = "Type 97 Shinhoto Chi-Ha",
 	factions = { "JP" },
-	description = "Light-armored medium tank with a high-velocity 47mm gun.",
-	maxHealth = 1700,
-	armor = { front = 40, side = 25, rear = 20 },
+	description = "Compact medium tank with a high-velocity 47mm gun and a quick reload.",
+	maxHealth = 1900,
+	armor = { front = 80, side = 40, rear = 30 },
 	speed = 32,
 	turretTraverse = 36,
 	weapons = {
-		main = { name = "47mm Type 1", reload = 3.1, shake = 0.5, recoil = 3, ammo = { AP(80, 430, 1000), HE(57) } },
+		main = { name = "47mm Type 1", reload = 4.0, shake = 0.5, recoil = 3, ammo = { AP(110, 600, 1000), HE(57) } },
 		coax = TYPE97(),
 		hullMG = withCone(TYPE97(), BOW),
 	},
@@ -976,7 +978,7 @@ def("LightTank", {
 	name = "Type 95 Ha-Go",
 	factions = { "JP" },
 	description = "Fast light tank with paper-thin armor.",
-	maxHealth = 1200,
+	maxHealth = 1100,
 	armor = { front = 18, side = 12, rear = 10 },
 	speed = 40,
 	weapons = {
@@ -1031,11 +1033,11 @@ def("MediumTank", {
 	name = "Carro Armato M13/40",
 	factions = { "IT" },
 	description = "Riveted medium tank with a 47/32 gun and twin hull machine guns.",
-	maxHealth = 1700,
-	armor = { front = 45, side = 25, rear = 20 },
+	maxHealth = 1900,
+	armor = { front = 80, side = 40, rear = 30 },
 	speed = 27,
 	weapons = {
-		main = { name = "47/32 M35", reload = 3.0, shake = 0.5, recoil = 3, ammo = { AP(65, 410, 900), HE(47) } },
+		main = { name = "47/32 M35", reload = 4.0, shake = 0.5, recoil = 3, ammo = { AP(110, 600, 900), HE(47) } },
 		coax = BREDA38(),
 		hullMG = withCone(BREDA38({ rpm = 600 }), BOW),
 	},
@@ -1047,7 +1049,7 @@ def("LightTank", {
 	name = "L6/40",
 	factions = { "IT" },
 	description = "Light tank armed with a Breda 20mm autocannon.",
-	maxHealth = 1200,
+	maxHealth = 1100,
 	armor = { front = 35, side = 15, rear = 15 },
 	speed = 38,
 	weapons = {
@@ -1138,7 +1140,7 @@ local module = {
 
 	-- Damage-model constants (see header).
 	DAMAGE = {
-		PEN_FACING_MULT = { front = 1.0, side = 1.15, rear = 1.35, top = 1.35 },
+		PEN_FACING_MULT = { front = 1.0, side = 1.25, rear = 1.7, top = 1.7 },
 		EXPLOSIVE_FACING_MULT = { front = 0.6, side = 1.0, rear = 1.4, top = 1.4 },
 		NONPEN_FRACTION = { AP = 0.1, HE = 0.3 },
 		HEAT_NONPEN_FRACTION = 0.25,

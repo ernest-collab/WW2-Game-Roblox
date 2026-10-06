@@ -649,7 +649,7 @@ function ProgressionService:Start()
 	end
 
 	Net.event("Settings_Save").OnServerEvent:Connect(function(player: Player, payload: any)
-		if not Net.rateLimit(player, "Settings_Save", 1) then
+		if not Net.rateLimit(player, "Settings_Save", 2) then
 			return
 		end
 		local profile = profiles[player]

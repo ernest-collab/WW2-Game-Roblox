@@ -45,7 +45,7 @@ local FIRE_RATE_SLACK = 0.9 -- accept shots at up to ~111% of the weapon RPM (cl
 local RELOAD_GRACE = 0.3 -- a shot this close to reload completion completes the reload instead
 local ASSIST_WINDOW = 10
 local ASSIST_MIN_DAMAGE = 15
-local THROW_COOLDOWN = 0.6
+local THROW_COOLDOWN = 0.45 -- below the client THROW_LOCK (0.55) minus network jitter
 local LAUNCH_COOLDOWN = 0.5
 local REGEN_TICK = 0.25
 local MAX_FX_DISTANCE = 1200 -- players farther than this from a shot don't receive Combat_ShotFX
@@ -1125,7 +1125,7 @@ local function onFire(player: Player, payload: any)
 		return
 	end
 	local interval = 60 / math.max(def.rpm, 1) * FIRE_RATE_SLACK
-	st.fireClock = math.max(st.fireClock, t - math.min(FIRE_BURST_WINDOW, interval * 0.5)) + interval
+	st.fireClock = math.max(st.fireClock, t - math.min(FIRE_BURST_WINDOW, interval * 3)) + interval
 	-- Origin must be close to the server's view of the head (latency + movement slack).
 	local root = character:FindFirstChild("HumanoidRootPart")
 	local speed = root and root:IsA("BasePart") and root.AssemblyLinearVelocity.Magnitude or 0

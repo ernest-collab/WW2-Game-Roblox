@@ -675,7 +675,14 @@ local function switchSeat(player: Player, wanted: string?)
 	local st, current = rec.st, rec.seatId
 	local seats = st.def.seats
 	local target: string? = nil
-	if wanted and wanted ~= current and seatDefOf(st, wanted) and not st.occupants[wanted] then
+	local wantedDef = if wanted then seatDefOf(st, wanted) else nil
+	if
+		wanted
+		and wanted ~= current
+		and wantedDef
+		and not st.occupants[wanted]
+		and (wantedDef.role ~= "driver" or canDrive(player, st))
+	then
 		target = wanted
 	else
 		local idx = 1
@@ -1348,7 +1355,9 @@ local function fireMG(player: Player, st: VState, weaponId: string, aim: Vector3
 	end
 	ms.heat = math.max(0, ms.heat - mgDef.coolRate * (t - ms.lastShot)) + mgDef.heatPerShot
 	ms.lastShot = t
-	ms.nextShot = math.max(t, ms.nextShot) + interval
+	-- Credit up to two intervals of idle time so packets bunched by network jitter are not dropped;
+	-- the long-run rate stays capped at the MG's rpm.
+	ms.nextShot = math.max(t - interval * 2, ms.nextShot) + interval
 	ms.mag -= 1
 	local stateChanged = false
 	if ms.heat >= 1 then
@@ -1886,6 +1895,22 @@ function VehicleService:Start()
 		player.CharacterRemoving:Connect(function()
 			leaveVehicle(player, false)
 		end)
+		-- A crew member who dies stays welded in the seat (BreakJointsOnDeath = false): free the seat
+		-- (and network ownership / controls) right away and drop the body at an exit point.
+		local function onCharacter(char: Model)
+			local hum = char:WaitForChild("Humanoid", 10)
+			if hum and hum:IsA("Humanoid") then
+				hum.Died:Connect(function()
+					if player.Character == char and playerSeat[player] then
+						leaveVehicle(player, true)
+					end
+				end)
+			end
+		end
+		player.CharacterAdded:Connect(onCharacter)
+		if player.Character then
+			task.spawn(onCharacter, player.Character)
+		end
 	end
 	Players.PlayerAdded:Connect(onPlayer)
 	for _, p in Players:GetPlayers() do

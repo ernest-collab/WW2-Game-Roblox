@@ -89,19 +89,20 @@ local function getService(name: string): any
 	return nil
 end
 
--- pcall a function on another service if it exists. Returns (called, result).
-local function callService(serviceName: string, fnName: string, ...: any): (boolean, any)
+-- pcall a function on another service if it exists. Returns (called, ...results) — every return
+-- value is forwarded (SquadService.GetSquadSpawn returns cframe, target, reason).
+local function callService(serviceName: string, fnName: string, ...: any): (boolean, ...any)
 	local svc = getService(serviceName)
 	local fn = svc and svc[fnName]
 	if type(fn) ~= "function" then
 		return false, nil
 	end
-	local ok, result = pcall(fn, ...)
-	if not ok then
-		warn(`[SpawnService] {serviceName}.{fnName} failed: {result}`)
+	local results = table.pack(pcall(fn, ...))
+	if not results[1] then
+		warn(`[SpawnService] {serviceName}.{fnName} failed: {results[2]}`)
 		return false, nil
 	end
-	return true, result
+	return table.unpack(results, 1, results.n)
 end
 
 local function getState(player: Player): PlayerState
@@ -380,6 +381,14 @@ local function spawnCharacter(player: Player, classId: string, loadout: any, cfr
 	player:SetAttribute("Loadout", HttpService:JSONEncode(loadout))
 	player:SetAttribute("OutOfBounds", 0)
 	player:SetAttribute("Revivable", 0)
+
+	-- Workspace.StreamingEnabled: stream the destination in first, otherwise the client-owned
+	-- character can land before the ground exists there and fall through the map.
+	if workspace.StreamingEnabled then
+		pcall(function()
+			player:RequestStreamAroundAsync(cframe.Position, 4)
+		end)
+	end
 
 	local ok, err = pcall(loadCharacter, player)
 	state.despawning = false

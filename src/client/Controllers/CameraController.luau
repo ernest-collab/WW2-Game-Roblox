@@ -304,7 +304,11 @@ local function postRender(dt: number)
 		lastTempOffset = temp
 	end
 
-	-- FOV
+	-- FOV (VehicleController owns the FOV while seated: gunner sight zoom)
+	if inVehicle then
+		currentFov = camera.FieldOfView
+		return
+	end
 	local target = baseFov
 	for _, d in fovOffsets do
 		target += d

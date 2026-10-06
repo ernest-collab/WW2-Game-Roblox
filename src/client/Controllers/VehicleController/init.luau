@@ -1240,15 +1240,19 @@ function VehicleController:Start()
 	player.CharacterRemoving:Connect(function()
 		endSession()
 	end)
-	Bus.connect("MenuOpened", function()
+	-- Several menus can be open at once (e.g. Deploy + Settings): track them by name.
+	local openMenus: { [string]: boolean } = {}
+	Bus.connect("MenuOpened", function(name)
+		openMenus[tostring(name)] = true
 		menuOpen = true
 		local s = session
 		if s then
 			s.primaryHeld, s.secondaryHeld, s.zoom = false, false, false
 		end
 	end)
-	Bus.connect("MenuClosed", function()
-		menuOpen = false
+	Bus.connect("MenuClosed", function(name)
+		openMenus[tostring(name)] = nil
+		menuOpen = next(openMenus) ~= nil
 	end)
 	CollectionService:GetInstanceAddedSignal(Constants.TAGS.Vehicle):Connect(function(inst)
 		if inst:IsA("Model") then

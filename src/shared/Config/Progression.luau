@@ -61,7 +61,7 @@ function Progression.xpToNext(level: number): number
 		return 0
 	end
 	local l = math.max(level, 1) - 1
-	return math.floor(1500 + 320 * l + 8 * l * l)
+	return math.floor(1500 + 260 * l + 24 * l * l)
 end
 
 -- Total XP required to reach `level` from zero.

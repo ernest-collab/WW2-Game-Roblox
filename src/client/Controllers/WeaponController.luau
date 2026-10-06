@@ -1226,6 +1226,13 @@ function WeaponController:Start()
 		onTriggerUp()
 		onAim(false)
 	end)
+	-- The spawn-time equip can be refused while the deploy screen is still closing (both react to
+	-- the same Alive change): equip as soon as the last menu closes.
+	Bus.connect("MenuClosed", function()
+		if alive and not equippedId and not inVehicle() and not menuOpen() then
+			equipDefault()
+		end
+	end)
 
 	player:GetAttributeChangedSignal("Loadout"):Connect(function()
 		if alive then

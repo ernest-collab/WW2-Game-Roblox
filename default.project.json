@@ -36,6 +36,7 @@
         "StreamingEnabled": true,
         "StreamingTargetRadius": 1024,
         "StreamingMinRadius": 256,
+        "StreamingIntegrityMode": "MinimumRadiusPause",
         "Gravity": 196.2
       }
     },
