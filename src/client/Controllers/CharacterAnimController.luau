@@ -14,7 +14,9 @@
 	    airborne tuck, velocity-scaled walk cycle (forward + strafe swing), free arm swing when
 	    unarmed.
 	  * Remote characters' footsteps at foot plants (SoundController.PlayAt "Footstep_<Material>").
-	  * LOD: full rate within 150 studs, every 3rd frame up to 450 studs, skipped beyond.
+	  * LOD: full rate within 60 studs (on screen), every 2nd frame up to 150 studs, every 3rd up
+	    to 450 studs, skipped beyond; characters outside the camera's view cone update every 4th
+	    frame (they still cast shadows, so they are not frozen).
 
 	The default "Animate" script is removed (server: CharacterAnimService; client fallback here)
 	so stock walk/idle tracks never fight these poses.
@@ -37,9 +39,13 @@ local IDENTITY = CFrame.identity
 local V3 = Vector3.new
 
 local RENDER_PRIORITY = Enum.RenderPriority.Character.Value
+local CLOSE_DISTANCE = 60
 local NEAR_DISTANCE = 150
 local FAR_DISTANCE = 450
+local MID_STEP = 2 -- frames between updates in the 60..150 band
 local FAR_STEP = 3 -- frames between updates in the far band
+local OFFSCREEN_STEP = 4 -- frames between updates for characters behind the camera
+local OFFSCREEN_DOT = 0.2 -- cos of the half view cone treated as "on screen" (generous: ~78 deg)
 local FOOTSTEP_DISTANCE = 70
 local STRIDE_RATE = 0.6 -- walk-cycle radians per stud travelled
 
@@ -102,6 +108,13 @@ type Rig = {
 	frame: number,
 	weaponHidden: boolean,
 	lastWeapon: Model?,
+	-- cached lookups for lastWeapon (refreshed only when the weapon model changes)
+	weaponGrip: Motor6D?,
+	weaponHandle: BasePart?,
+	weaponHold: any,
+	weaponRearZ: number,
+	weaponGripLocal: Vector3,
+	weaponSupportLocal: Vector3,
 }
 
 local rigs: { [Model]: Rig } = {}
@@ -289,9 +302,15 @@ local function buildRig(character: Model): Rig?
 		sprintA = 0,
 		seatA = 0,
 		accum = 0,
-		frame = math.random(0, FAR_STEP - 1),
+		frame = math.random(0, 11), -- stagger LOD buckets (lcm of MID/FAR/OFFSCREEN steps)
 		weaponHidden = false,
 		lastWeapon = nil,
+		weaponGrip = nil,
+		weaponHandle = nil,
+		weaponHold = nil,
+		weaponRearZ = 1,
+		weaponGripLocal = V3(0, -0.1, 0.3),
+		weaponSupportLocal = V3(0, -0.07, -0.6),
 	}
 end
 
@@ -515,12 +534,26 @@ local function poseRig(rig: Rig, dt: number, camPos: Vector3)
 	local ltCF = root.CFrame * rig.rootJoint.C0 * rootT * rig.rootJoint.C1:Inverse()
 	local utCF = ltCF * rig.waist.C0 * waistT * rig.waist.C1:Inverse()
 
-	-- weapon
-	local weaponModel, gripJoint, handle = findWeapon(character)
-	if weaponModel ~= rig.lastWeapon then
-		rig.lastWeapon = weaponModel
-		rig.weaponHidden = false
+	-- weapon (the model/joint/attachment lookups are cached per weapon model; only the cheap
+	-- identity check runs every frame)
+	local weaponModel = rig.lastWeapon
+	if not (weaponModel and weaponModel.Parent == character and rig.weaponGrip and rig.weaponGrip.Parent) then
+		local m, g, h = findWeapon(character)
+		weaponModel = m
+		if m ~= rig.lastWeapon or g ~= rig.weaponGrip then
+			rig.lastWeapon = m
+			rig.weaponHidden = false
+			rig.weaponGrip = g
+			rig.weaponHandle = h
+			if m and h then
+				rig.weaponHold = m:GetAttribute("Hold")
+				rig.weaponRearZ = tonumber(m:GetAttribute("RearZ")) or 1
+				rig.weaponGripLocal = attachmentPos(h, "Grip", V3(0, -0.1, 0.3))
+				rig.weaponSupportLocal = attachmentPos(h, "Support", V3(0, -0.07, -0.6))
+			end
+		end
 	end
+	local gripJoint, handle = rig.weaponGrip, rig.weaponHandle
 	if weaponModel and (seatA > 0.5) ~= rig.weaponHidden then
 		rig.weaponHidden = seatA > 0.5
 		setModelHidden(weaponModel, rig.weaponHidden)
@@ -529,10 +562,10 @@ local function poseRig(rig: Rig, dt: number, camPos: Vector3)
 	local bodyRot = root.CFrame.Rotation
 	local right = bodyRot.RightVector
 	if weaponModel and gripJoint and handle and seatA < 0.5 then
-		local hold = weaponModel:GetAttribute("Hold")
-		local rearZ = tonumber(weaponModel:GetAttribute("RearZ")) or 1
-		local gripLocal = attachmentPos(handle, "Grip", V3(0, -0.1, 0.3))
-		local supportLocal = attachmentPos(handle, "Support", V3(0, -0.07, -0.6))
+		local hold = rig.weaponHold
+		local rearZ = rig.weaponRearZ
+		local gripLocal = rig.weaponGripLocal
+		local supportLocal = rig.weaponSupportLocal
 		local neckBase = if neck then (utCF * neck.C0).Position else (utCF * CF(0, 0.8, 0)).Position
 		local aimFrame = CF(neckBase) * bodyRot * ANG(aimPitch, 0, 0)
 		local lowFrame = CF(neckBase) * bodyRot * ANG(aimPitch * 0.3, 0, 0)
@@ -597,7 +630,10 @@ local function step(dt: number)
 		return
 	end
 	frameCounter += 1
-	local camPos = camera.CFrame.Position
+	debug.profilebegin("WW2CharacterAnim")
+	local camCF = camera.CFrame
+	local camPos = camCF.Position
+	local camLook = camCF.LookVector
 	for character, rig in rigs do
 		if character.Parent == nil then
 			rigs[character] = nil
@@ -607,14 +643,19 @@ local function step(dt: number)
 		if humanoid.Health <= 0 or not rig.root.Parent then
 			continue -- ragdoll owns the body now
 		end
-		local dist = (rig.root.Position - camPos).Magnitude
+		local offset = rig.root.Position - camPos
+		local dist = offset.Magnitude
 		if dist > FAR_DISTANCE and not rig.isLocal then
 			continue
 		end
 		rig.accum += dt
-		if dist > NEAR_DISTANCE and not rig.isLocal then
+		if dist > CLOSE_DISTANCE and not rig.isLocal then
+			local every = if dist > NEAR_DISTANCE then FAR_STEP else MID_STEP
+			if offset:Dot(camLook) < OFFSCREEN_DOT * dist then
+				every = OFFSCREEN_STEP
+			end
 			rig.frame += 1
-			if rig.frame % FAR_STEP ~= 0 then
+			if rig.frame % every ~= 0 then
 				continue
 			end
 		end
@@ -625,6 +666,7 @@ local function step(dt: number)
 			rigs[character] = nil
 		end
 	end
+	debug.profileend()
 end
 
 --------------------------------------------------------------------------------------------------

@@ -145,16 +145,14 @@ def load_configs() -> dict:
     chunks.append(POSTLUDE)
     with tempfile.NamedTemporaryFile("w", suffix=".luau", delete=False) as tmp:
         tmp.write("\n".join(chunks))
-        path = tmp.path if hasattr(tmp, "path") else tmp.name
+        path = tmp.name
     try:
         res = subprocess.run([find_luau(), path], capture_output=True, text=True, timeout=60)
     finally:
         os.unlink(path)
     if res.returncode != 0 or not res.stdout.strip():
         sys.exit("balance_report: luau failed:\n" + res.stderr[-2000:])
-    # Old weapons modules may expose the registry differently; fall back to module fields.
-    data = json.loads(res.stdout.strip().splitlines()[-1])
-    return data
+    return json.loads(res.stdout.strip().splitlines()[-1])
 
 
 # ------------------------------------------------------------------------------------------------
