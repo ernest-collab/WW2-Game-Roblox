@@ -450,6 +450,9 @@ local function pier(ctx: any, a: Vector3, b: Vector3, deckY: number, width: numb
 			local pp = look * Vector3.new(sx * (width / 2 - 0.4), 0, -(i * 12 + 6))
 			local ground = ctx:GroundY(pp.X, pp.Z)
 			local hgt = deckY - ground + 1
+			if hgt < 1.5 then
+				continue
+			end
 			ctx:Part({
 				Name = "Pile",
 				Parent = model,
@@ -470,7 +473,7 @@ local function pier(ctx: any, a: Vector3, b: Vector3, deckY: number, width: numb
 	})
 	for _, sx in { -1, 1 } do
 		local pp = look * Vector3.new(sx * width * 1.3, 0, -(len + 5))
-		local ground = ctx:GroundY(pp.X, pp.Z)
+		local ground = math.min(ctx:GroundY(pp.X, pp.Z), deckY - 1)
 		ctx:Part({
 			Name = "Pile",
 			Parent = model,
@@ -563,7 +566,7 @@ function Pacific.Build(parent: Folder, _def: any)
 	hm:Hill(110, 470, 190, 34, 1.3) -- Radio Hill
 	hm:Hill(-420, 250, 160, 9)
 	hm:Hill(-380, -330, 120, 6)
-	hm:Ridge({ V(-60, 700), V(-40, 560), V(-70, 470) }, 70, 14) -- jungle ridge east of the Axis HQ
+	hm:Ridge({ V(-60, 700), V(-40, 560), V(-70, 470) }, 80, 20) -- jungle ridge east of the Axis HQ
 	hm:Ridge({ V(-330, 640), V(-320, 520), V(-280, 470) }, 60, 10)
 	-- lagoon: enclosed by a thin atoll rim, opened to the sea by a channel
 	hm:Custom(function(x, z, h)
@@ -582,6 +585,7 @@ function Pacific.Build(parent: Folder, _def: any)
 	hm:Flatten(-140, -260, 50, nil, 25)
 	Layout.PrepareHQ(hm, HQ_ALLIES, { y = 3 })
 	Layout.PrepareHQ(hm, HQ_AXIS, { y = 5 })
+	hm:Ridge({ V(-330, 520), V(-300, 466), V(-200, 452), V(-90, 466), V(-60, 520) }, 50, 13) -- jungle rise ringing the Axis HQ
 	-- dunes and log-topped berms screening the Allied beachhead from the island interior
 	hm:Ridge({ V(-280, -660), V(-275, -580), V(-250, -520) }, 40, 12)
 	hm:Ridge({ V(-20, -660), V(-25, -580), V(-50, -520) }, 40, 12)
@@ -745,7 +749,7 @@ function Pacific.Build(parent: Folder, _def: any)
 	-------------------------------------------------------------------------------------------
 	-- 5. D: Lagoon Pier — pier, stilt warehouses, fuel dump, barge wreck
 	-------------------------------------------------------------------------------------------
-	local deckY = 4.2
+	local deckY = math.max(ctx:GroundY(244, 196), 2.6) + 0.8
 	pier(ctx, V(244, 196), V(330, 196), deckY, 9)
 	Buildings.Hut(ctx, ctx:GroundCF(200, 240, 180), { style = PACIFIC_STYLE, stilts = true, width = 16, depth = 10, name = "Warehouse" })
 	Buildings.Hut(ctx, ctx:GroundCF(196, 168, 0), { style = PACIFIC_STYLE, stilts = true, width = 14, depth = 10, name = "Warehouse" })
@@ -916,7 +920,7 @@ function Pacific.Build(parent: Folder, _def: any)
 			order = i,
 			initialOwner = o.owner,
 		})
-		drySpawns(ctx, hm, obj, 4)
+		drySpawns(ctx, hm, obj, 5)
 		table.insert(objectives, obj)
 	end
 
