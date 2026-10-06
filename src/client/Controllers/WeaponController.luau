@@ -357,7 +357,11 @@ local function startReload()
 	remotes.Reload:FireServer({ weaponId = weaponId })
 	Bus.fire("ReloadStarted", weaponId, duration, empty)
 	call("ViewmodelController", "PlayReload", duration, empty)
-	call("SoundController", "Play2D", if empty then "Reload_Empty" else "Reload", { volume = 0.6 })
+	local reloadSound = if w.reloadType == "single"
+		then "Reload_Shell"
+		elseif w.reloadType == "clip" then "Reload_Clip"
+		else "Reload_Mag"
+	call("SoundController", "Play2D", reloadSound, { volume = 0.6 })
 
 	reloadThread = task.spawn(function()
 		if w.reloadType == "single" then
@@ -465,7 +469,7 @@ local function cycleFireMode()
 	local idx = (fireModeIndex[def.id] or 1) % #def.fireModes + 1
 	fireModeIndex[def.id] = idx
 	burstLeft = 0
-	call("SoundController", "Play2D", "FireModeSwitch", { volume = 0.5 })
+	call("SoundController", "Play2D", "UI_Click", { volume = 0.5 })
 	Bus.fire("FireModeChanged", def.fireModes[idx])
 end
 
@@ -611,7 +615,7 @@ local function fireLauncher(): boolean
 end
 
 local function dryFire()
-	call("SoundController", "Play2D", "DryFire", { volume = 0.5 })
+	call("SoundController", "Play2D", "Dry_Fire", { volume = 0.5 })
 	nextShotAt = now() + 0.25
 	local entry = equippedId and ammo[equippedId]
 	if entry and entry.reserve > 0 then
@@ -706,7 +710,7 @@ local function throwItem(w: any, cook: number, quick: boolean)
 		cook = cook,
 	})
 	call("ViewmodelController", "PlayThrow")
-	call("SoundController", "Play2D", "GrenadeThrow", { volume = 0.6 })
+	call("SoundController", "Play2D", "Grenade_Throw", { volume = 0.6 })
 	actionLockUntil = now() + THROW_LOCK
 	if equippedId == w.id then
 		fireAmmoChanged()
@@ -819,7 +823,7 @@ local function onTriggerDown()
 	if isThrowable() then
 		if now() >= actionLockUntil and now() >= equipEndsAt and ammo[def.id] and ammo[def.id].mag > 0 then
 			cookStart = now()
-			call("SoundController", "Play2D", "GrenadePin", { volume = 0.5 })
+			call("SoundController", "Play2D", "UI_Click", { volume = 0.5 })
 		end
 		return
 	end
