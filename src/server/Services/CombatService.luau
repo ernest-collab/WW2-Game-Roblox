@@ -1055,7 +1055,9 @@ local function processShot(
 					if
 						amount > 0
 						and damageVehicle(vehicle, amount, st.player, def.id, claimedPos, {
-							penetration = def.penetration,
+							-- armor rating if the weapon has one (AT rifles); else the 0..1 cover factor,
+							-- which VehicleService treats as "small arms"
+							penetration = def.armorPenetration or def.penetration,
 							explosive = false,
 						})
 					then

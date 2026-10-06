@@ -75,6 +75,7 @@ export type Weapon = {
 	equipTime: number,
 	walkSpeedMult: number,
 	penetration: number,
+	armorPenetration: number?, -- armor rating vs vehicles (AT rifles); Vehicles armor scale
 	suppression: number?,
 	fuse: number?,
 	blastRadius: number?,
@@ -519,6 +520,9 @@ local AT_RIFLE = merge(BOLT, {
 	equipTime = 1.1,
 	walkSpeedMult = 0.86,
 	penetration = 1,
+	-- Armor rating (same scale as Vehicles armor) used against vehicles. `penetration` above is the
+	-- 0..1 cover factor; 25 defeats light vehicles/armored cars but not tank armor.
+	armorPenetration = 25,
 	vehicleDamage = 140,
 	suppression = 1,
 	visual = { archetype = "BoltRifle", magazine = "box", length = 6.0, woodColor = DARK_WOOD, metalColor = BLUED },
