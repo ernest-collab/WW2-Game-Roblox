@@ -158,7 +158,7 @@ end
 
 local function updateMouse()
 	local open = isMenuOpen()
-	if modalButton then
+	if modalButton and modalButton.Visible ~= open then
 		modalButton.Visible = open
 	end
 	local fp = appliedFirstPerson == true

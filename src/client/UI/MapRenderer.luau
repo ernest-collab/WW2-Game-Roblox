@@ -92,6 +92,11 @@ function MapRenderer.new(parent: GuiObject, opts: Options)
 	self.objectiveMarkers = {} :: { [string]: any }
 	self.spawnButtons = {} :: { [string]: TextButton }
 	self.blink = false
+	-- last snapped values written by UpdateView (mini mode)
+	self._viewX = nil :: number?
+	self._viewY = nil :: number?
+	self._viewRot = nil :: number?
+	self._arrowRot = nil :: number?
 
 	-- Viewport: CanvasGroup clips rotated descendants correctly.
 	local viewport = Theme.new(self.mode == "mini" and "CanvasGroup" or "Frame", {
@@ -515,17 +520,33 @@ function MapRenderer:UpdateView()
 		self.selfArrow.Visible = false
 		return
 	end
+	-- The mini viewport is a CanvasGroup: any descendant change re-rasterises the whole map, so
+	-- snap to whole pixels / half degrees and only write when the snapped value changes.
 	local focus = root and root.Position or cam.Focus.Position
 	local u, v = Data.toUV(info, focus.X, focus.Z)
 	local size = self.content.Size
-	self.content.Position = UDim2.fromOffset(-u * size.X.Offset, -v * size.Y.Offset)
+	local px, py = math.round(-u * size.X.Offset), math.round(-v * size.Y.Offset)
+	if px ~= self._viewX or py ~= self._viewY then
+		self._viewX, self._viewY = px, py
+		self.content.Position = UDim2.fromOffset(px, py)
+	end
 	local camHeading = Data.heading(cam.CFrame.LookVector)
-	self.pivot.Rotation = self.rotate and -camHeading or 0
+	local pivotRot = if self.rotate then math.round(-camHeading * 2) / 2 else 0
+	if pivotRot ~= self._viewRot then
+		self._viewRot = pivotRot
+		self.pivot.Rotation = pivotRot
+	end
 	if root then
 		local charHeading = Data.heading(root.CFrame.LookVector)
-		self.selfArrow.Rotation = self.rotate and (charHeading - camHeading) or charHeading
-		self.selfArrow.Visible = true
-	else
+		local arrowRot = math.round((if self.rotate then charHeading - camHeading else charHeading) * 2) / 2
+		if arrowRot ~= self._arrowRot then
+			self._arrowRot = arrowRot
+			self.selfArrow.Rotation = arrowRot
+		end
+		if not self.selfArrow.Visible then
+			self.selfArrow.Visible = true
+		end
+	elseif self.selfArrow.Visible then
 		self.selfArrow.Visible = false
 	end
 end

@@ -125,8 +125,11 @@ function Minimap.new(ctx)
 			self.renderer:Refresh()
 		end
 		self.renderer:UpdateView()
-		self.northPivot.Rotation = self.renderer.pivot.Rotation
-		self.northLabel.Rotation = -self.renderer.pivot.Rotation
+		local rot = self.renderer.pivot.Rotation
+		if self.northPivot.Rotation ~= rot then
+			self.northPivot.Rotation = rot
+			self.northLabel.Rotation = -rot
+		end
 	end)
 	return self
 end

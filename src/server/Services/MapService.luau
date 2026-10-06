@@ -224,6 +224,49 @@ function MapService.UnloadMap()
 	GameState.set("MapInfoJson", "")
 end
 
+-- One pass over the freshly built map (docs/PERFORMANCE.md): enforces the cheap physics/render
+-- flags for every part (also for builders that bypass MapKit's ctx:Part) and logs the counts that
+-- the performance budget is written against.
+local MAP_PART_BUDGET = 25000
+local TINY_SHADOW_VOLUME = 1 -- studs^3: smaller parts cast sub-texel shadows
+local function auditMap(folder: Instance, mapId: string)
+	local parts, shadows, unanchored, emitters, lights = 0, 0, 0, 0, 0
+	for i, d in folder:GetDescendants() do
+		if d:IsA("BasePart") then
+			parts += 1
+			if not d.Anchored then
+				d.Anchored = true -- map geometry is static; DestructionService unanchors its own debris
+				unanchored += 1
+			end
+			if d.CanTouch then
+				d.CanTouch = false -- nothing in the game listens to Touched
+			end
+			if d.CastShadow then
+				local s = d.Size
+				if s.X * s.Y * s.Z < TINY_SHADOW_VOLUME then
+					d.CastShadow = false
+				else
+					shadows += 1
+				end
+			end
+		elseif d:IsA("ParticleEmitter") or d:IsA("Fire") or d:IsA("Smoke") then
+			emitters += 1
+		elseif d:IsA("Light") then
+			lights += 1
+		end
+		if i % 4000 == 0 then
+			task.wait() -- keep the server heartbeat responsive on very large maps
+		end
+	end
+	print(
+		`[MapService] {mapId}: {parts} parts ({shadows} shadow casters), {emitters} emitters, {lights} lights`
+			.. (if unanchored > 0 then `, anchored {unanchored} loose parts` else "")
+	)
+	if parts > MAP_PART_BUDGET then
+		warn(`[MapService] {mapId}: {parts} parts exceeds the {MAP_PART_BUDGET} part budget (docs/PERFORMANCE.md)`)
+	end
+end
+
 function MapService.LoadMap(mapId: string): any
 	local def = Maps.byId[mapId]
 	if not def then
@@ -262,6 +305,8 @@ function MapService.LoadMap(mapId: string): any
 		loading = false
 		return nil
 	end
+
+	auditMap(folder, mapId)
 
 	current = result
 	GameState.set("MapInfoJson", encodePublic(result))

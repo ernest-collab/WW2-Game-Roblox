@@ -82,10 +82,18 @@ type VisualCache = {
 	pitch: number,
 	mgYaw: number,
 	mgPitch: number,
+	-- last values written to the joints (Transform writes are skipped when nothing moved)
+	wYaw: number,
+	wPitch: number,
+	wMg: number,
+	wMg2: number,
 	prompt: ProximityPrompt?,
 }
 
 local caches: { [Model]: VisualCache } = {}
+-- Every Model tagged Vehicle (maintained from CollectionService signals so the per-step loop does
+-- not allocate a fresh GetTagged array 60 times a second).
+local taggedVehicles: { [Model]: true } = {}
 
 local function buildCache(model: Model): VisualCache
 	local cache: VisualCache = {
@@ -101,6 +109,10 @@ local function buildCache(model: Model): VisualCache
 		pitch = (model:GetAttribute("GunPitch") :: number?) or 0,
 		mgYaw = (model:GetAttribute("MGYaw") :: number?) or 0,
 		mgPitch = (model:GetAttribute("MGPitch") :: number?) or 0,
+		wYaw = math.huge,
+		wPitch = math.huge,
+		wMg = math.huge,
+		wMg2 = math.huge,
 		prompt = nil,
 	}
 	local chassis = cache.chassis
@@ -427,10 +439,7 @@ local function animateVehicles(dt: number)
 	local camPos = if cam then cam.CFrame.Position else Vector3.zero
 	local s = session
 	local smooth = 1 - math.exp(-REMOTE_SMOOTH * dt)
-	for _, model in CollectionService:GetTagged(Constants.TAGS.Vehicle) do
-		if not model:IsA("Model") then
-			continue
-		end
+	for model in taggedVehicles do
 		local c = getCache(model)
 		local chassis = c and c.chassis
 		if not c or not chassis then
@@ -457,13 +466,17 @@ local function animateVehicles(dt: number)
 			c.mgYaw = c.mgYaw + wrapAngle(my - c.mgYaw) * smooth
 			c.mgPitch = c.mgPitch + (mp - c.mgPitch) * smooth
 		end
-		if c.turretMotor and c.turretMotor.Parent then
+		-- joints keep their Transform (no Animator on vehicles): only write when the angle moved
+		if c.turretMotor and c.turretMotor.Parent and math.abs(c.yaw - c.wYaw) > 1e-4 then
+			c.wYaw = c.yaw
 			c.turretMotor.Transform = CFrame.Angles(0, c.yaw, 0)
 		end
-		if c.gunMotor then
+		if c.gunMotor and math.abs(c.pitch - c.wPitch) > 1e-4 then
+			c.wPitch = c.pitch
 			c.gunMotor.Transform = CFrame.Angles(c.pitch, 0, 0)
 		end
-		if c.mgMotor then
+		if c.mgMotor and math.abs(c.mgYaw - c.wMg) + math.abs(c.mgPitch - c.wMg2) > 1e-4 then
+			c.wMg, c.wMg2 = c.mgYaw, c.mgPitch
 			c.mgMotor.Transform = CFrame.Angles(0, c.mgYaw, 0) * CFrame.Angles(c.mgPitch, 0, 0)
 		end
 		-- wheels / sprockets
@@ -541,7 +554,9 @@ local function readDriveInput(s: Session)
 end
 
 local function onPreSimulation(dt: number)
+	debug.profilebegin("WW2VehicleAnimate")
 	animateVehicles(dt)
+	debug.profileend()
 	local s = session
 	if s and s.rig and s.role == "driver" and s.model.Parent then
 		readDriveInput(s)
@@ -1257,14 +1272,21 @@ function VehicleController:Start()
 	CollectionService:GetInstanceAddedSignal(Constants.TAGS.Vehicle):Connect(function(inst)
 		if inst:IsA("Model") then
 			caches[inst] = nil
+			taggedVehicles[inst] = true
 			task.defer(refreshPrompts)
 		end
 	end)
 	CollectionService:GetInstanceRemovedSignal(Constants.TAGS.Vehicle):Connect(function(inst)
 		if inst:IsA("Model") then
 			caches[inst] = nil
+			taggedVehicles[inst] = nil
 		end
 	end)
+	for _, inst in CollectionService:GetTagged(Constants.TAGS.Vehicle) do
+		if inst:IsA("Model") then
+			taggedVehicles[inst] = true
+		end
+	end
 
 	RunService.PreSimulation:Connect(onPreSimulation)
 	RunService:BindToRenderStep("VehicleCamera", Enum.RenderPriority.Camera.Value + 10, onRenderStep)

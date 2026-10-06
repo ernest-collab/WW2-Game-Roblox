@@ -32,6 +32,10 @@ local Remotes = require(UI:WaitForChild("Remotes"))
 
 local SettingsController = {}
 
+-- Phones/tablets (touch, no keyboard) start on LOW graphics so mid-range devices hold 30+ FPS;
+-- a saved setting always wins over this default.
+local DEFAULT_QUALITY = if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then 1 else 2
+
 export type SettingDef = {
 	key: string,
 	label: string,
@@ -115,7 +119,7 @@ SettingsController.Schema = {
 		label = "Graphics Quality",
 		category = "Video",
 		kind = "choice",
-		default = 2,
+		default = DEFAULT_QUALITY,
 		options = { 1, 2, 3 },
 		optionLabels = { "LOW", "MEDIUM", "HIGH" },
 	},

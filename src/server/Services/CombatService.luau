@@ -49,6 +49,8 @@ local THROW_COOLDOWN = 0.45 -- below the client THROW_LOCK (0.55) minus network 
 local LAUNCH_COOLDOWN = 0.5
 local REGEN_TICK = 0.25
 local MAX_FX_DISTANCE = 1200 -- players farther than this from a shot don't receive Combat_ShotFX
+local MAX_FX_HITS = 6 -- Combat_ShotFX hit cap (9-pellet shotguns ~ 6 x 60 B; keeps the packet < 500 B)
+local FX_HIT_MERGE = 1.5 -- studs: pellet impacts closer than this share one FX entry
 local BACKSTAB_DOT = -0.35
 local BACKSTAB_DAMAGE = 200
 local MELEE_LAG_BONUS = 2.5
@@ -1151,8 +1153,19 @@ local function onFire(player: Player, payload: any)
 		end
 		if type(shot) == "table" then
 			local pos, normal, material = processShot(st, def, origin, shot, maxDist, agg)
-			if pos then
-				table.insert(fxHits, { pos = pos, normal = normal, material = material })
+			if pos and #fxHits < MAX_FX_HITS then
+				-- Shotgun pellets cluster: merge impacts that land on top of each other so the
+				-- unreliable Combat_ShotFX payload stays well under the ~900 byte limit.
+				local dup = false
+				for _, h in fxHits do
+					if (h.pos - pos).Magnitude < FX_HIT_MERGE then
+						dup = true
+						break
+					end
+				end
+				if not dup then
+					table.insert(fxHits, { pos = pos, normal = normal, material = material })
+				end
 			end
 		end
 	end

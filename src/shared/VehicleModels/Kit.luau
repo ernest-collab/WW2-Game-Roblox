@@ -91,6 +91,8 @@ function Kit:motor(name: string, part0: BasePart, part1: BasePart): Motor6D
 	return m
 end
 
+local SHADOW_MIN_VOLUME = 0.5 -- studs^3
+
 local function apply(self: Kit, p: BasePart, name: string, size: Vector3, cf: CFrame, color: Color3, opts: PartOpts?)
 	local o: PartOpts = opts or {}
 	p.Name = name
@@ -103,7 +105,9 @@ local function apply(self: Kit, p: BasePart, name: string, size: Vector3, cf: CF
 	p.CanCollide = o.collide == true
 	p.CanTouch = false
 	p.CanQuery = o.query ~= false
-	p.CastShadow = o.shadow ~= false
+	-- Tiny details (bolts, handles, hinges, periscopes) cast sub-texel shadows: skip them unless a
+	-- builder explicitly asks (saves shadow-map draw calls per vehicle).
+	p.CastShadow = o.shadow == true or (o.shadow == nil and size.X * size.Y * size.Z >= SHADOW_MIN_VOLUME)
 	p.Transparency = o.transparency or 0
 	p.Reflectance = o.reflectance or 0
 	p.TopSurface = Enum.SurfaceType.Smooth

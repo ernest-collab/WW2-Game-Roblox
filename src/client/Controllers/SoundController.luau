@@ -327,22 +327,25 @@ local function play(key: string, position: Vector3?, opts: PlayOpts?)
 	end
 end
 
-local function sweep()
-	newVoicesThisFrame = 0
-	local now = os.clock()
-	for _, pool in { voices3D, voices2D } do
-		for _, v in pool do
-			if v.busy then
-				if now >= v.stopAt then
-					releaseVoice(v)
-				elseif now >= v.stopAt - FADE_TIME then
-					v.sound.Volume = v.baseVolume * math.max(0, (v.stopAt - now) / FADE_TIME)
-				elseif now - v.startedAt > 0.5 and not v.sound.Playing then
-					releaseVoice(v) -- failed to load / stopped externally
-				end
+local function sweepPool(pool: { Voice }, now: number)
+	for _, v in pool do
+		if v.busy then
+			if now >= v.stopAt then
+				releaseVoice(v)
+			elseif now >= v.stopAt - FADE_TIME then
+				v.sound.Volume = v.baseVolume * math.max(0, (v.stopAt - now) / FADE_TIME)
+			elseif now - v.startedAt > 0.5 and not v.sound.Playing then
+				releaseVoice(v) -- failed to load / stopped externally
 			end
 		end
 	end
+end
+
+local function sweep()
+	newVoicesThisFrame = 0
+	local now = os.clock()
+	sweepPool(voices3D, now)
+	sweepPool(voices2D, now)
 end
 
 ---------------------------------------------------------------------------------------------------

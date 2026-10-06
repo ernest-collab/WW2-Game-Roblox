@@ -55,6 +55,7 @@ local VehicleService = {}
 ---------------------------------------------------------------------------------------------------
 
 local ENTER_RANGE = 12 -- studs beyond the hull half-diagonal
+local MG_FX_RANGE = 1200 -- MG tracer FX (per bullet, ~20 Hz) only go to players within this range
 local AIM_RATE = 30 -- Vehicle_Aim messages / s accepted
 local FIRE_RATE = 30 -- Vehicle_Fire messages / s accepted
 local REQUEST_RATE = 6
@@ -1421,7 +1422,8 @@ local function fireMG(player: Player, st: VState, weaponId: string, aim: Vector3
 			end
 		end
 	end
-	remotes.FX:FireAllClients({
+	-- Per-bullet event: distance-culled fan-out (like Combat_ShotFX) instead of FireAllClients.
+	local fx = {
 		kind = "mg",
 		uid = st.uid,
 		shooter = player,
@@ -1430,7 +1432,20 @@ local function fireMG(player: Player, st: VState, weaponId: string, aim: Vector3
 		hit = hitPos,
 		normal = normal,
 		material = material,
-	})
+	}
+	for _, other in Players:GetPlayers() do
+		local oc = other.Character
+		local oroot = oc and oc:FindFirstChild("HumanoidRootPart")
+		-- (the shooter draws its own tracers locally and ignores this event)
+		if
+			other ~= player
+			and oroot
+			and oroot:IsA("BasePart")
+			and (oroot.Position - origin).Magnitude <= MG_FX_RANGE
+		then
+			remotes.FX:FireClient(other, fx)
+		end
+	end
 	if stateChanged then
 		sendWeapon(player, st, weaponId)
 	end

@@ -463,6 +463,16 @@ end
 ---------------------------------------------------------------------------------------------------
 
 local splashAcc = 0
+-- Emitter writes only when the value actually changes (steady-state weather writes nothing).
+local function setEmitter(e: ParticleEmitter, rate: number, enabled: boolean)
+	if math.abs(e.Rate - rate) > 0.05 then
+		e.Rate = rate
+	end
+	if e.Enabled ~= enabled then
+		e.Enabled = enabled
+	end
+end
+
 local function stepWeather(dt: number)
 	local cam = camPos()
 	if dt > 0 then
@@ -484,23 +494,16 @@ local function stepWeather(dt: number)
 
 	local q = quality
 	local rain = target.rain * open
-	em.rain.Rate = RAIN_RATE[q] * rain
-	em.rain.Enabled = rain > 0.02
-	em.nearRain.Rate = NEAR_RAIN_RATE[q] * rain
-	em.nearRain.Enabled = rain > 0.02 and q >= 2
+	setEmitter(em.rain, RAIN_RATE[q] * rain, rain > 0.02)
+	setEmitter(em.nearRain, NEAR_RAIN_RATE[q] * rain, rain > 0.02 and q >= 2)
 	local snow = target.snow * open
-	em.snow.Rate = SNOW_RATE[q] * snow
-	em.snow.Enabled = snow > 0.02
+	setEmitter(em.snow, SNOW_RATE[q] * snow, snow > 0.02)
 	local ash = target.ash * open
-	em.ash.Rate = ASH_RATE[q] * ash
-	em.ash.Enabled = ash > 0.02
-	em.embers.Rate = ASH_RATE[q] * 0.15 * ash
-	em.embers.Enabled = ash > 0.3 and q >= 2
+	setEmitter(em.ash, ASH_RATE[q] * ash, ash > 0.02)
+	setEmitter(em.embers, ASH_RATE[q] * 0.15 * ash, ash > 0.3 and q >= 2)
 	-- Fog/dust are volumetric-ish: keep them indoors too (they drift in through openings).
-	em.fog.Rate = FOG_RATE[q] * target.fog
-	em.fog.Enabled = target.fog > 0.02
-	em.dust.Rate = DUST_RATE[q] * target.dust
-	em.dust.Enabled = target.dust > 0.02
+	setEmitter(em.fog, FOG_RATE[q] * target.fog, target.fog > 0.02)
+	setEmitter(em.dust, DUST_RATE[q] * target.dust, target.dust > 0.02)
 
 	-- Rain splashes on whatever surface is below random points around the camera.
 	if rain > 0.05 then

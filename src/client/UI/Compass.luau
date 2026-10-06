@@ -127,6 +127,9 @@ function Compass.new(ctx)
 		Parent = frame,
 	})
 
+	self.seen = {} :: { [string]: boolean }
+	self.stripX = nil :: number?
+	self.headingInt = nil :: number?
 	self.conn = RunService.RenderStepped:Connect(function()
 		if self.visible then
 			self:_update()
@@ -170,7 +173,7 @@ function Compass:_marker(id: string)
 		ZIndex = 6,
 		Parent = chip,
 	})
-	m = { chip = chip, dist = dist }
+	m = { chip = chip, dist = dist, meters = -1 }
 	self.markers[id] = m
 	return m
 end
@@ -181,12 +184,23 @@ function Compass:_update()
 		return
 	end
 	local heading = Data.heading(cam.CFrame.LookVector)
-	self.strip.Position = UDim2.fromOffset(WIDTH / 2 - (heading - MIN_DEG) * PX_PER_DEG, 0)
-	self.headingLabel.Text = string.format("%03d", math.floor(heading + 0.5) % 360)
+	-- whole pixels / whole degrees: a still camera writes nothing, and text is only re-laid out
+	-- (and the string only formatted) when the displayed number changes
+	local stripX = math.round(WIDTH / 2 - (heading - MIN_DEG) * PX_PER_DEG)
+	if stripX ~= self.stripX then
+		self.stripX = stripX
+		self.strip.Position = UDim2.fromOffset(stripX, 0)
+	end
+	local headingInt = math.floor(heading + 0.5) % 360
+	if headingInt ~= self.headingInt then
+		self.headingInt = headingInt
+		self.headingLabel.Text = string.format("%03d", headingInt)
+	end
 
 	local origin = cam.CFrame.Position
 	local folder = GameState.folder():FindFirstChild("Objectives")
-	local seen = {}
+	local seen = self.seen
+	table.clear(seen)
 	if folder then
 		for _, obj in folder:GetChildren() do
 			local pos = obj:GetAttribute("Position")
@@ -204,7 +218,12 @@ function Compass:_update()
 					local blinkOn = (os.clock() % 0.8) < 0.4
 					m.chip.BackgroundColor3 = (contested and blinkOn) and Theme.Colors.Text or Theme.sideColor(owner)
 					m.chip.BackgroundTransparency = obj:GetAttribute("Locked") == true and 0.5 or 0
-					m.dist.Text = Theme.meters(Vector3.new(delta.X, 0, delta.Z).Magnitude)
+					local studs = Vector3.new(delta.X, 0, delta.Z).Magnitude
+					local meters = math.floor(studs * 0.28 + 0.5) -- same rounding as Theme.meters
+					if meters ~= m.meters then
+						m.meters = meters
+						m.dist.Text = Theme.meters(studs)
+					end
 				else
 					m.chip.Visible = false
 				end

@@ -1567,7 +1567,9 @@ local function stepSmokeVeil(dt: number)
 	end
 	veilAmount += (target - veilAmount) * math.clamp(dt * 3, 0, 1)
 	if veilAmount < 0.01 then
-		veil.Enabled = false
+		if veil.Enabled then
+			veil.Enabled = false
+		end
 		return
 	end
 	veil.Enabled = true
@@ -1698,7 +1700,9 @@ function EffectsController.Fire(target: any, duration: number?, scale: number?):
 	f.target = if typeof(target) == "Instance" and target:IsA("BasePart") then target else nil
 	f.position = if typeof(target) == "Vector3" then target elseif f.target then f.target.Position else Vector3.zero
 	f.part.Size = Vector3.new(4 * s, 1, 4 * s)
-	f.part.CFrame = CFrame.new(f.position)
+	f.part.CFrame = if f.target
+		then CFrame.new(f.position + Vector3.new(0, f.target.Size.Y * 0.5, 0))
+		else CFrame.new(f.position)
 	f.flames.Size = ns(0, 1.6 * s, 0.4, 3 * s, 1, 0.6 * s)
 	f.flames.Rate = ({ 12, 20, 30 })[quality] * s
 	f.smoke.Rate = ({ 3, 5, 7 })[quality] * s
@@ -1741,8 +1745,11 @@ local function stepFires(now: number)
 				if t.Parent == nil then
 					f.target = nil
 				else
-					f.position = t.Position
-					f.part.CFrame = CFrame.new(f.position + Vector3.new(0, t.Size.Y * 0.5, 0))
+					local pos = t.Position
+					if pos ~= f.position then -- static targets (anchored wrecks, props) never move
+						f.position = pos
+						f.part.CFrame = CFrame.new(pos + Vector3.new(0, t.Size.Y * 0.5, 0))
+					end
 				end
 			end
 			f.light.Brightness = f.baseBrightness * (0.75 + 0.25 * math.noise(now * 6, f.gen))
@@ -1872,6 +1879,7 @@ function EffectsController:Start()
 
 	local lastQualityPoll = 0
 	RunService.RenderStepped:Connect(function(dt)
+		debug.profilebegin("WW2Effects")
 		local now = os.clock()
 		impactsThisFrame = 0
 		explosionsThisFrame = 0
@@ -1883,6 +1891,7 @@ function EffectsController:Start()
 			lastQualityPoll = now
 			refreshQuality()
 		end
+		debug.profileend()
 	end)
 end
 

@@ -12,7 +12,15 @@ local Workspace = game:GetService("Workspace")
 
 local FX = {}
 
-type Shell = { part: BasePart, pos: Vector3, vel: Vector3, gravity: number, age: number, ignore: Instance? }
+type Shell = {
+	part: BasePart,
+	pos: Vector3,
+	vel: Vector3,
+	gravity: number,
+	age: number,
+	ignore: Instance?,
+	params: RaycastParams, -- built once per shell (not rebuilt every step)
+}
 
 local POOL_SIZE = 12
 local MAX_AGE = 4
@@ -120,6 +128,16 @@ local function burst(emitter: ParticleEmitter, position: Vector3, direction: Vec
 end
 
 -- Main gun shot (any vehicle). `chassis` is the firing hull (for ground dust), may be nil.
+local function shellParams(ignore: Instance?): RaycastParams
+	if not ignore then
+		return rayParams
+	end
+	local p = RaycastParams.new()
+	p.FilterType = Enum.RaycastFilterType.Exclude
+	p.FilterDescendantsInstances = { folder, ignore }
+	return p
+end
+
 function FX.MainGunFired(origin: Vector3, velocity: Vector3, gravityScale: number, scale: number, ignore: Instance?)
 	local dir = velocity.Unit
 	if not call("EffectsController", "MuzzleFlash", CFrame.lookAlong(origin, dir), 3 + scale * 0.4) then
@@ -141,10 +159,15 @@ function FX.MainGunFired(origin: Vector3, velocity: Vector3, gravityScale: numbe
 			light.Enabled = true
 		end
 		part.CFrame = CFrame.lookAlong(origin, dir)
-		table.insert(
-			active,
-			{ part = part, pos = origin, vel = velocity, gravity = gravityScale, age = 0, ignore = ignore }
-		)
+		table.insert(active, {
+			part = part,
+			pos = origin,
+			vel = velocity,
+			gravity = gravityScale,
+			age = 0,
+			ignore = ignore,
+			params = shellParams(ignore),
+		})
 	end
 end
 
@@ -168,12 +191,7 @@ function FX.Step(dt: number)
 		s.age += dt
 		s.vel += Vector3.new(0, -g * s.gravity * dt, 0)
 		local step = s.vel * dt
-		if s.ignore then
-			rayParams.FilterDescendantsInstances = { folder, s.ignore }
-		else
-			rayParams.FilterDescendantsInstances = { folder }
-		end
-		local hit = Workspace:Raycast(s.pos, step, rayParams)
+		local hit = Workspace:Raycast(s.pos, step, s.params)
 		if hit or s.age > MAX_AGE then
 			table.remove(active, i)
 			release(s)
@@ -182,7 +200,6 @@ function FX.Step(dt: number)
 			s.part.CFrame = CFrame.lookAlong(s.pos, s.vel.Unit)
 		end
 	end
-	rayParams.FilterDescendantsInstances = { folder }
 end
 
 function FX.MGFired(origin: Vector3, hit: Vector3, normal: Vector3?, material: string?, heavy: boolean)
