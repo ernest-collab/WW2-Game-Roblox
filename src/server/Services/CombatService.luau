@@ -587,12 +587,13 @@ local function damageVehicle(
 	end
 	local vs = getService("VehicleService")
 	if vs and type(vs.ApplyDamage) == "function" then
-		local ok, err = pcall(vs.ApplyDamage, vehicle, amount, attacker, weaponId, pos, opts)
+		local ok, result = pcall(vs.ApplyDamage, vehicle, amount, attacker, weaponId, pos, opts)
 		if not ok then
-			warn(`[CombatService] VehicleService.ApplyDamage failed: {err}`)
+			warn(`[CombatService] VehicleService.ApplyDamage failed: {result}`)
 			return false
 		end
-		return true
+		-- ApplyDamage returns the damage actually applied (0 = e.g. AT rifle failed to penetrate)
+		return type(result) ~= "number" or result > 0
 	end
 	return false
 end

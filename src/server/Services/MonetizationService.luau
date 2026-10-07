@@ -1075,8 +1075,12 @@ function MonetizationService:Init()
 		local ok, result = pcall(DataStoreService.GetDataStore, DataStoreService, Monetization.DATASTORE_NAME)
 		if ok then
 			store = result
-		else
+		elseif RunService:IsStudio() then
 			enableMemoryMode(tostring(result))
+		else
+			-- Live server: never fall back to an unpersisted store (grants would be acknowledged
+			-- without being saved). With store = nil every write fails -> NotProcessedYet.
+			warn(`[MonetizationService] GetDataStore failed: {result}; purchases will be retried later.`)
 		end
 	end
 

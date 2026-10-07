@@ -316,7 +316,9 @@ end
 -- Load / save
 ---------------------------------------------------------------------------------------------------
 
-local function save(profile: Profile, release: boolean): boolean
+local activeSaves = 0 -- saves in progress (BindToClose also waits for PlayerRemoving saves)
+
+local function saveInner(profile: Profile, release: boolean): boolean
 	if profile.readOnly or not profile.loaded then
 		return false
 	end
@@ -359,6 +361,18 @@ local function save(profile: Profile, release: boolean): boolean
 		profile.released = true
 	end
 	return true
+end
+
+local function save(profile: Profile, release: boolean): boolean
+	activeSaves += 1
+	local ok, result = pcall(saveInner, profile, release)
+	activeSaves -= 1
+	if not ok then
+		profile.saving = false
+		warn(`[ProgressionService] save error for {profile.key}: {result}`)
+		return false
+	end
+	return result
 end
 
 local function load(profile: Profile)
@@ -705,7 +719,7 @@ function ProgressionService:Start()
 			profiles[player] = nil
 		end
 		local deadline = os.clock() + 25
-		while remaining > 0 and os.clock() < deadline do
+		while (remaining > 0 or activeSaves > 0) and os.clock() < deadline do
 			task.wait(0.1)
 		end
 	end)
