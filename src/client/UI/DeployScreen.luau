@@ -18,6 +18,7 @@
 	Last class / loadout per class are remembered in settings ("LastClass" / "Loadouts").
 ]]
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -783,7 +784,9 @@ end
 -- Spawn_Result {ok, error?}
 function DeployScreen:OnSpawnResult(ok: boolean, err: string?)
 	self.pending = false
-	if not ok then
+	if ok then
+		self.showDeath = false
+	else
 		self.error = string.upper(err or "DEPLOYMENT FAILED")
 		self:_pollSpawnOptions()
 	end
@@ -807,6 +810,7 @@ end
 
 function DeployScreen:SetRespawnDelay(seconds: number)
 	self.respawnAt = os.clock() + seconds
+	self.showDeath = false -- new round
 end
 
 ------------------------------------------------------------------------------------------------
@@ -879,7 +883,15 @@ function DeployScreen:Close()
 	self.backdrop.Visible = false
 	self.reviveOverlay.Visible = false
 	self.pending = false
-	self.showDeath = false
+end
+
+-- Gamepad: put the selection on DEPLOY (or GIVE UP while the revive overlay shows).
+function DeployScreen:FocusGamepad()
+	if not self.visible then
+		return
+	end
+	local target = if self.reviveOverlay.Visible then self.giveUpButton else self.deployButton
+	GuiService.SelectedObject = target
 end
 
 function DeployScreen:IsOpen(): boolean

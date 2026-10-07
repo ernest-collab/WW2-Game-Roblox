@@ -52,6 +52,7 @@ local VehicleController = {}
 
 local ACTION_PRIORITY = Enum.ContextActionPriority.High.Value + 100
 local MOUSE_DEG_PER_PIXEL = 0.22
+local TOUCH_DEG_PER_PIXEL = 0.3
 local GAMEPAD_CAM_SPEED = math.rad(200)
 local STICK_DEADZONE = 0.15
 local CAM_DISTANCE_MULT = 2.6 -- x hull half-length
@@ -200,6 +201,7 @@ type Session = {
 	steer: number,
 	stick: Vector2,
 	camStick: Vector2,
+	touchDelta: Vector2,
 	triggerR: number,
 	lastAimSend: number,
 	sentYaw: number,
@@ -527,6 +529,31 @@ end
 -- Session per-frame
 ---------------------------------------------------------------------------------------------------
 
+local function touchOnly(): boolean
+	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+end
+
+-- Move vector of the default touch thumbstick (Vector3.zero when the PlayerModule is unavailable).
+local controlModule: any = nil
+local function touchMoveVector(): Vector3
+	if controlModule == nil then
+		controlModule = false
+		pcall(function()
+			local module = player:WaitForChild("PlayerScripts"):FindFirstChild("PlayerModule")
+			if module and module:IsA("ModuleScript") then
+				controlModule = (require(module) :: any):GetControls()
+			end
+		end)
+	end
+	if controlModule then
+		local ok, mv = pcall(controlModule.GetMoveVector, controlModule)
+		if ok and typeof(mv) == "Vector3" then
+			return mv
+		end
+	end
+	return Vector3.zero
+end
+
 local function readDriveInput(s: Session)
 	if menuOpen then
 		s.throttle, s.steer = 0, 0
@@ -546,6 +573,11 @@ local function readDriveInput(s: Session)
 		steer -= 1
 	end
 	local stick = deadzone(s.stick)
+	if stick.Magnitude == 0 and touchOnly() then
+		-- phones / tablets: the on-screen thumbstick feeds the PlayerModule's ControlModule
+		local mv = touchMoveVector()
+		stick = Vector2.new(mv.X, -mv.Z)
+	end
 	if stick.Magnitude > 0 then
 		throttle = math.clamp(throttle + stick.Y, -1, 1)
 		steer = math.clamp(steer + stick.X, -1, 1)
@@ -727,7 +759,8 @@ local function onRenderStep(dt: number)
 	if not menuOpen then
 		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
 		UserInputService.MouseIconEnabled = false
-		local delta = UserInputService:GetMouseDelta()
+		local delta = UserInputService:GetMouseDelta() + s.touchDelta * (TOUCH_DEG_PER_PIXEL / MOUSE_DEG_PER_PIXEL)
+		s.touchDelta = Vector2.zero
 		local sens = MOUSE_DEG_PER_PIXEL * (if s.zoom then 0.35 else 1)
 		s.camYaw -= math.rad(delta.X * sens)
 		s.camPitch -= math.rad(delta.Y * sens)
@@ -739,6 +772,7 @@ local function onRenderStep(dt: number)
 		end
 		s.camPitch = math.clamp(s.camPitch, CAM_MIN_PITCH, CAM_MAX_PITCH)
 	else
+		s.touchDelta = Vector2.zero
 		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 		UserInputService.MouseIconEnabled = true
 	end
@@ -859,7 +893,11 @@ local function handleAction(name: string, state: Enum.UserInputState, input: Inp
 			s.secondaryHeld = false
 		end
 	elseif name == ACTIONS.Zoom then
-		if began then
+		if input.UserInputType == Enum.UserInputType.Touch then
+			if began then
+				s.zoom = not s.zoom -- toggle on touch
+			end
+		elseif began then
 			s.zoom = true
 		elseif ended then
 			s.zoom = false
@@ -886,11 +924,26 @@ local function handleAction(name: string, state: Enum.UserInputState, input: Inp
 	return Enum.ContextActionResult.Sink
 end
 
+-- On-screen buttons for phones / tablets (same layout as WeaponController's infantry buttons,
+-- which are unbound while seated).
+local TOUCH_BUTTONS: { [string]: { any } } = {
+	[ACTIONS.Fire] = { "FIRE", UDim2.new(1, -95, 1, -150) },
+	[ACTIONS.Alt] = { "ALT", UDim2.new(1, -165, 1, -110) },
+	[ACTIONS.Zoom] = { "ZOOM", UDim2.new(1, -170, 1, -185) },
+	[ACTIONS.Exit] = { "EXIT", UDim2.new(1, -95, 1, -225) },
+	[ACTIONS.Switch] = { "SEAT", UDim2.new(1, -235, 1, -150) },
+}
+
 local function bindActions(trove: any)
 	local kb = Keybinds.keyboard
 	local gp = Keybinds.gamepad
 	local function bind(name: string, ...: any)
-		ContextActionService:BindActionAtPriority(name, handleAction, false, ACTION_PRIORITY, ...)
+		local touch = if UserInputService.TouchEnabled then TOUCH_BUTTONS[name] else nil
+		ContextActionService:BindActionAtPriority(name, handleAction, touch ~= nil, ACTION_PRIORITY, ...)
+		if touch then
+			ContextActionService:SetTitle(name, touch[1])
+			ContextActionService:SetPosition(name, touch[2])
+		end
 		trove:Add(function()
 			ContextActionService:UnbindAction(name)
 		end)
@@ -1012,6 +1065,7 @@ local function startSession(uid: string, seatId: string)
 		steer = 0,
 		stick = Vector2.zero,
 		camStick = Vector2.zero,
+		touchDelta = Vector2.zero,
 		triggerR = 0,
 		lastAimSend = 0,
 		sentYaw = 1e9,
@@ -1056,6 +1110,13 @@ local function startSession(uid: string, seatId: string)
 	end
 	callController("CameraController", "SetFirstPerson", false)
 	bindActions(s.trove)
+
+	-- touch camera: drags that no GUI (thumbstick, buttons) consumed
+	s.trove:Connect(UserInputService.TouchMoved, function(touch: InputObject, processed: boolean)
+		if not processed and session == s then
+			s.touchDelta += Vector2.new(touch.Delta.X, touch.Delta.Y)
+		end
+	end)
 
 	-- gamepad sticks / triggers
 	s.trove:Connect(UserInputService.InputChanged, function(input: InputObject)

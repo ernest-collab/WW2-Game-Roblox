@@ -55,6 +55,7 @@ function SettingsMenu.new(ctx)
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.new(0, 680, 1, -90),
 		Visible = false,
+		ZIndex = 45, -- stacks above the deploy screen and the store (ZIndex 40)
 		Parent = ctx.menuRoot,
 	})
 	Theme.new("UISizeConstraint", { MaxSize = Vector2.new(680, 640), Parent = panel })

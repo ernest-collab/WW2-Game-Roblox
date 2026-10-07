@@ -911,41 +911,60 @@ local function onInputEnded(input: InputObject)
 	end
 end
 
-local function bindTouch()
+local touchBound = false
+
+local function touchHandler(action: string, state: Enum.UserInputState)
+	local began = state == Enum.UserInputState.Begin
+	local ended = state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel
+	if action == "WW2_Fire" then
+		if began then
+			onTriggerDown()
+		elseif ended then
+			onTriggerUp()
+		end
+	elseif action == "WW2_Aim" and began then
+		onAim(not aimHeld) -- toggle on touch
+	elseif action == "WW2_Reload" and began then
+		onReloadPressed()
+	elseif action == "WW2_Grenade" and began then
+		quickGrenade()
+	elseif action == "WW2_Switch" and began then
+		equipSlot(if equippedSlot == "primary" then "secondary" else "primary")
+	end
+	return Enum.ContextActionResult.Sink
+end
+
+local TOUCH_BUTTONS = {
+	{ "WW2_Fire", "FIRE", UDim2.new(1, -95, 1, -150) },
+	{ "WW2_Aim", "AIM", UDim2.new(1, -165, 1, -110) },
+	{ "WW2_Reload", "R", UDim2.new(1, -170, 1, -185) },
+	{ "WW2_Grenade", "G", UDim2.new(1, -95, 1, -225) },
+	{ "WW2_Switch", "SWAP", UDim2.new(1, -235, 1, -150) },
+}
+
+-- Infantry touch buttons exist only while alive on foot with no menu open, so they never sit on
+-- top of the deploy screen / store or under VehicleController's own seat buttons.
+local function refreshTouch()
 	if not UserInputService.TouchEnabled then
 		return
 	end
-	local function handler(action: string, state: Enum.UserInputState)
-		local began = state == Enum.UserInputState.Begin
-		local ended = state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel
-		if action == "WW2_Fire" then
-			if began then
-				onTriggerDown()
-			elseif ended then
-				onTriggerUp()
-			end
-		elseif action == "WW2_Aim" and began then
-			onAim(not aimHeld) -- toggle on touch
-		elseif action == "WW2_Reload" and began then
-			onReloadPressed()
-		elseif action == "WW2_Grenade" and began then
-			quickGrenade()
-		elseif action == "WW2_Switch" and began then
-			equipSlot(if equippedSlot == "primary" then "secondary" else "primary")
-		end
-		return Enum.ContextActionResult.Sink
+	local want = alive and not inVehicle() and not menuOpen()
+	if want == touchBound then
+		return
 	end
-	local buttons = {
-		{ "WW2_Fire", "FIRE", UDim2.new(1, -95, 1, -150) },
-		{ "WW2_Aim", "AIM", UDim2.new(1, -165, 1, -110) },
-		{ "WW2_Reload", "R", UDim2.new(1, -170, 1, -185) },
-		{ "WW2_Grenade", "G", UDim2.new(1, -95, 1, -225) },
-		{ "WW2_Switch", "SWAP", UDim2.new(1, -235, 1, -150) },
-	}
-	for _, b in buttons do
-		ContextActionService:BindAction(b[1], handler, true)
-		ContextActionService:SetTitle(b[1], b[2])
-		ContextActionService:SetPosition(b[1], b[3])
+	touchBound = want
+	for _, b in TOUCH_BUTTONS do
+		if want then
+			ContextActionService:BindAction(b[1], touchHandler, true)
+			ContextActionService:SetTitle(b[1], b[2])
+			ContextActionService:SetPosition(b[1], b[3])
+		else
+			ContextActionService:UnbindAction(b[1])
+		end
+	end
+	if not want then
+		onTriggerUp()
+		onAim(false)
 	end
 end
 
@@ -1127,6 +1146,7 @@ end
 
 local function onDied()
 	alive = false
+	refreshTouch()
 	localUnequip()
 	table.clear(ammo) -- next life's counts come from Combat_Ammo / defaults
 	call("CameraController", "SetFovOffset", "ADS", 0)
@@ -1136,6 +1156,7 @@ local function onCharacterAdded(character: Model)
 	characterTrove:Clean()
 	localUnequip()
 	alive = false
+	refreshTouch()
 	refreshRayParams()
 	local hum = character:WaitForChild("Humanoid", 10)
 	if not hum or not hum:IsA("Humanoid") or player.Character ~= character then
@@ -1155,6 +1176,7 @@ local function onCharacterAdded(character: Model)
 		return
 	end
 	alive = true
+	refreshTouch()
 	readLoadout()
 	if not inVehicle() then
 		equipDefault()
@@ -1220,15 +1242,15 @@ function WeaponController:Start()
 
 	UserInputService.InputBegan:Connect(onInputBegan)
 	UserInputService.InputEnded:Connect(onInputEnded)
-	bindTouch()
-
 	Bus.connect("MenuOpened", function()
 		onTriggerUp()
 		onAim(false)
+		refreshTouch()
 	end)
 	-- The spawn-time equip can be refused while the deploy screen is still closing (both react to
 	-- the same Alive change): equip as soon as the last menu closes.
 	Bus.connect("MenuClosed", function()
+		refreshTouch()
 		if alive and not equippedId and not inVehicle() and not menuOpen() then
 			equipDefault()
 		end
@@ -1243,6 +1265,7 @@ function WeaponController:Start()
 		end
 	end)
 	player:GetAttributeChangedSignal("VehicleUid"):Connect(function()
+		refreshTouch()
 		if inVehicle() then
 			localUnequip()
 		elseif alive then

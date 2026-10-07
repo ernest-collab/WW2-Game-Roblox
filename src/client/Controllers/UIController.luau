@@ -22,6 +22,7 @@
 	WW2_HUD 5 (safe area), WW2_Backdrop 9 (menu dimmers), WW2_Menus 10, WW2_Overlay 15.
 ]]
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -56,6 +57,7 @@ local state = {
 	deployed = false,
 	deployedCharacter = nil :: Model?,
 	deathCamUntil = 0,
+	deathCamScheduled = 0,
 	results = nil :: any,
 	progression = nil :: any,
 	lastLevel = 0,
@@ -159,6 +161,28 @@ end
 
 local refreshVisibility: () -> ()
 
+local function isShown(obj: Instance): boolean
+	local node: Instance? = obj
+	while node do
+		if node:IsA("GuiObject") and not node.Visible then
+			return false
+		elseif node:IsA("ScreenGui") then
+			return node.Enabled
+		end
+		node = node.Parent
+	end
+	return false
+end
+
+-- A gamepad selection left on a hidden button would keep eating ButtonA (and could press a hidden
+-- DEPLOY / buy button): drop it once its menu is gone.
+local function clearHiddenSelection()
+	local selected = GuiService.SelectedObject
+	if selected and not isShown(selected) then
+		GuiService.SelectedObject = nil
+	end
+end
+
 local function setMenu(name: string, open: boolean)
 	if (openMenus[name] == true) == open then
 		return
@@ -166,6 +190,9 @@ local function setMenu(name: string, open: boolean)
 	openMenus[name] = if open then true else nil
 	Bus.fire(open and "MenuOpened" or "MenuClosed", name)
 	updateMouse()
+	if not open then
+		clearHiddenSelection()
+	end
 end
 
 function UIController.IsMenuOpen(): boolean
@@ -345,8 +372,12 @@ local function updateScreens()
 	setMenu("RoundEnd", base == "RoundEnd")
 	setMenu("Intermission", base == "Intermission")
 
-	if base ~= previous and base == "DeathCam" then
-		task.delay(DEATH_CAM_TIME + 0.05, updateScreens)
+	-- Re-check when the death cam ends. Scheduled from the actual deadline every time: the deadline
+	-- can move after the first schedule (Humanoid.Died, then Player_Died a few frames later), and a
+	-- single delay from the first call would leave the player on an empty screen.
+	if base == "DeathCam" and (base ~= previous or state.deathCamUntil ~= state.deathCamScheduled) then
+		state.deathCamScheduled = state.deathCamUntil
+		task.delay(math.max(0, state.deathCamUntil - os.clock()) + 0.05, updateScreens)
 	end
 	refreshVisibility()
 end
@@ -429,6 +460,19 @@ local function onInputBegan(input: InputObject, gameProcessed: boolean)
 		return
 	end
 	local key = input.KeyCode
+	-- Gamepad on the deploy screen with nothing selected (e.g. it opened before any gamepad input):
+	-- select DEPLOY so the A button can deploy.
+	if
+		state.base == "Deploy"
+		and input.UserInputType == Enum.UserInputType.Gamepad1
+		and GuiService.SelectedObject == nil
+		and not (openMenus.Settings or openMenus.Shop)
+	then
+		call("deploy", "FocusGamepad")
+		if GuiService.SelectedObject ~= nil then
+			return
+		end
+	end
 	if key == Enum.KeyCode.Tab then
 		state.scoreboardHeld = true
 		refreshVisibility()
@@ -449,7 +493,7 @@ local function onInputBegan(input: InputObject, gameProcessed: boolean)
 	elseif key == Enum.KeyCode.K then
 		UIController.ToggleMenu("Shop")
 	elseif key == Enum.KeyCode.Return or key == Enum.KeyCode.KeypadEnter then
-		if state.base == "Deploy" or openMenus.Loadout then
+		if (state.base == "Deploy" or openMenus.Loadout) and not (openMenus.Settings or openMenus.Shop) then
 			call("deploy", "TryDeploy")
 		end
 	elseif key == Enum.KeyCode.Space then
@@ -457,12 +501,16 @@ local function onInputBegan(input: InputObject, gameProcessed: boolean)
 			call("deploy", "DismissRevive")
 		end
 	elseif key == Enum.KeyCode.ButtonB or key == Enum.KeyCode.Backspace then
-		for _, name in { "Settings", "Shop", "BigMap", "Loadout" } do
-			if openMenus[name] then
-				UIController.CloseMenu(name)
-				break
+		-- Deferred: ButtonB is also crouch, and MovementController must still see the menu open
+		-- when it handles this same press.
+		task.defer(function()
+			for _, name in { "Settings", "Shop", "BigMap", "Loadout" } do
+				if openMenus[name] then
+					UIController.CloseMenu(name)
+					break
+				end
 			end
-		end
+		end)
 	end
 end
 
@@ -590,8 +638,8 @@ function UIController:Start()
 		call("deploy", "SetDeathInfo", payload.killer, payload.weaponId, respawn)
 		if state.deployed then
 			state.deployed = false
+			state.deathCamUntil = os.clock() + DEATH_CAM_TIME
 		end
-		state.deathCamUntil = os.clock() + DEATH_CAM_TIME
 		updateScreens()
 	end, trove)
 	Remotes.onEvent("Spawn_Result", function(payload)
