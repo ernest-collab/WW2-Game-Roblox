@@ -87,7 +87,19 @@ local HQ_AXIS = CFrame.new(-180, 0, 560) -- faces south (-Z)
 local AIRSTRIP = { a = V(-480, -60), b = V(220, 10), width = 44 }
 
 local ROADS = {
-	main = { V(-150, -560), V(-120, -450), V(-140, -260), V(-60, -100), V(20, 10), V(70, 40), V(90, 130), V(90, 300), V(100, 440), V(-40, 500), V(-180, 520) },
+	main = {
+		V(-150, -560),
+		V(-120, -450),
+		V(-140, -260),
+		V(-60, -100),
+		V(20, 10),
+		V(70, 40),
+		V(90, 130),
+		V(90, 300),
+		V(100, 440),
+		V(-40, 500),
+		V(-180, 520),
+	},
 	beach = { V(-520, -520), V(-300, -555), V(-150, -560), V(80, -520), V(320, -470), V(480, -400) },
 	lagoon = { V(90, 130), V(150, 140), V(230, 210), V(260, 360), V(100, 440) },
 	west = { V(-140, -260), V(-380, -140), V(-500, -60), V(-470, 160), V(-330, 400), V(-180, 520) },
@@ -235,7 +247,10 @@ local function palm(ctx: any, x: number, z: number, s: number, parent: Instance)
 			Name = "Frond",
 			Parent = model,
 			Size = Vector3.new(2.8 * s, 0.25, 11 * s),
-			CFrame = top * CFrame.Angles(0, a, 0) * CFrame.Angles(math.rad(ctx:Range(18, 34)), 0, 0) * CFrame.new(0, 0, -5 * s),
+			CFrame = top
+				* CFrame.Angles(0, a, 0)
+				* CFrame.Angles(math.rad(ctx:Range(18, 34)), 0, 0)
+				* CFrame.new(0, 0, -5 * s),
 			Material = M.Grass,
 			Color = ctx:Jitter(col, 0.08),
 			CanCollide = false,
@@ -251,7 +266,8 @@ local function stumpPalm(ctx: any, x: number, z: number, parent: Instance)
 	local y = ctx:GroundY(x, z)
 	local h = ctx:Range(5, 13)
 	local model = ctx:Model("BrokenPalm", parent)
-	local cf = CFrame.new(x, y - 0.5, z) * CFrame.Angles(ctx:Range(-0.15, 0.15), ctx:Range(0, 6.28), ctx:Range(-0.15, 0.15))
+	local cf = CFrame.new(x, y - 0.5, z)
+		* CFrame.Angles(ctx:Range(-0.15, 0.15), ctx:Range(0, 6.28), ctx:Range(-0.15, 0.15))
 	ctx:Part({
 		Name = "Trunk",
 		Parent = model,
@@ -378,7 +394,15 @@ local function amtrac(ctx: any, cf: CFrame)
 	local model = ctx:Model("AmtracWreck", ctx:Folder("Props"))
 	local col = ctx:Jitter(rgb(84, 92, 70), 0.06)
 	local function p(name: string, size: Vector3, lcf: CFrame, color: Color3?)
-		ctx:Part({ Name = name, Parent = model, Size = size, CFrame = cf * lcf, Material = M.CorrodedMetal, Color = color or col, NoPenetration = true })
+		ctx:Part({
+			Name = name,
+			Parent = model,
+			Size = size,
+			CFrame = cf * lcf,
+			Material = M.CorrodedMetal,
+			Color = color or col,
+			NoPenetration = true,
+		})
 	end
 	p("Hull", Vector3.new(9, 3, 22), CFrame.new(0, 2.5, 0))
 	p("TrackL", Vector3.new(2, 3.6, 24), CFrame.new(-5.4, 1.8, 0), rgb(50, 48, 44))
@@ -411,8 +435,18 @@ local function hangar(ctx: any, cf: CFrame, w: number, d: number, h: number)
 	p("BackWall", Vector3.new(w, h, 1), CFrame.new(0, h / 2, d / 2 - 0.5), { destructible = true })
 	for _, sx in { -1, 1 } do
 		-- side walls in two panels with a personnel gap
-		p("SideWall", Vector3.new(1, h, d * 0.45), CFrame.new(sx * (w / 2 - 0.5), h / 2, d * 0.25), { destructible = true })
-		p("SideWall", Vector3.new(1, h, d * 0.35), CFrame.new(sx * (w / 2 - 0.5), h / 2, -d * 0.32), { destructible = true })
+		p(
+			"SideWall",
+			Vector3.new(1, h, d * 0.45),
+			CFrame.new(sx * (w / 2 - 0.5), h / 2, d * 0.25),
+			{ destructible = true }
+		)
+		p(
+			"SideWall",
+			Vector3.new(1, h, d * 0.35),
+			CFrame.new(sx * (w / 2 - 0.5), h / 2, -d * 0.32),
+			{ destructible = true }
+		)
 		-- roof slopes
 		local rise = w * 0.18
 		local slope = math.atan2(rise, w / 2)
@@ -428,7 +462,12 @@ local function hangar(ctx: any, cf: CFrame, w: number, d: number, h: number)
 			end
 		end
 		-- door leaves pushed open at the front
-		p("Door", Vector3.new(w * 0.22, h - 1, 0.8), CFrame.new(sx * (w / 2 - w * 0.11), (h - 1) / 2, -d / 2 + 0.4), { color = rgb(90, 96, 84) })
+		p(
+			"Door",
+			Vector3.new(w * 0.22, h - 1, 0.8),
+			CFrame.new(sx * (w / 2 - w * 0.11), (h - 1) / 2, -d / 2 + 0.4),
+			{ color = rgb(90, 96, 84) }
+		)
 	end
 	for k = 0, 2 do
 		p("Truss", Vector3.new(w, 0.8, 0.8), CFrame.new(0, h, -d / 3 + k * d / 3), { color = rgb(80, 80, 76) })
@@ -443,14 +482,42 @@ local function planeWreck(ctx: any, cf: CFrame, broken: boolean)
 	local col = ctx:Pick({ rgb(84, 96, 72), rgb(150, 150, 140), rgb(70, 78, 60) })
 	local function p(name: string, size: Vector3, lcf: CFrame, opts: { [string]: any }?)
 		local o = opts or {}
-		ctx:Part({ Name = name, Parent = model, Size = size, CFrame = cf * lcf, Material = o.material or M.Metal, Color = o.color or col, Shape = o.shape, NoPenetration = true })
+		ctx:Part({
+			Name = name,
+			Parent = model,
+			Size = size,
+			CFrame = cf * lcf,
+			Material = o.material or M.Metal,
+			Color = o.color or col,
+			Shape = o.shape,
+			NoPenetration = true,
+		})
 	end
-	p("Fuselage", Vector3.new(20, 3.2, 3.2), CFrame.new(0, 2, 0) * CFrame.Angles(0, math.pi / 2, math.rad(4)), { shape = "Cylinder" })
-	p("Engine", Vector3.new(2.6, 3.6, 3.6), CFrame.new(0, 2.4, -10.5) * CFrame.Angles(0, math.pi / 2, 0), { shape = "Cylinder", color = rgb(40, 40, 40) })
-	p("Prop", Vector3.new(0.4, 7, 0.6), CFrame.new(0, 2.4, -12) * CFrame.Angles(0, 0, math.rad(ctx:Range(0, 90))), { color = rgb(50, 46, 40) })
+	p(
+		"Fuselage",
+		Vector3.new(20, 3.2, 3.2),
+		CFrame.new(0, 2, 0) * CFrame.Angles(0, math.pi / 2, math.rad(4)),
+		{ shape = "Cylinder" }
+	)
+	p(
+		"Engine",
+		Vector3.new(2.6, 3.6, 3.6),
+		CFrame.new(0, 2.4, -10.5) * CFrame.Angles(0, math.pi / 2, 0),
+		{ shape = "Cylinder", color = rgb(40, 40, 40) }
+	)
+	p(
+		"Prop",
+		Vector3.new(0.4, 7, 0.6),
+		CFrame.new(0, 2.4, -12) * CFrame.Angles(0, 0, math.rad(ctx:Range(0, 90))),
+		{ color = rgb(50, 46, 40) }
+	)
 	p("WingL", Vector3.new(14, 0.5, 5), CFrame.new(-7.5, 1.4, -3) * CFrame.Angles(0, 0, math.rad(4)))
 	if broken then
-		p("WingR", Vector3.new(9, 0.5, 5), CFrame.new(9, 0.4, -1) * CFrame.Angles(math.rad(10), math.rad(25), math.rad(-14)))
+		p(
+			"WingR",
+			Vector3.new(9, 0.5, 5),
+			CFrame.new(9, 0.4, -1) * CFrame.Angles(math.rad(10), math.rad(25), math.rad(-14))
+		)
 	else
 		p("WingR", Vector3.new(14, 0.5, 5), CFrame.new(7.5, 1.4, -3) * CFrame.Angles(0, 0, math.rad(-4)))
 	end
@@ -532,7 +599,14 @@ local function radioMast(ctx: any, pos: Vector3, height: number)
 		CFrame = CFrame.new(pos.X, y + height / 2, pos.Z),
 		Color = rgb(120, 60, 50),
 	})
-	ctx:Part({ Name = "Footing", Parent = model, Size = Vector3.new(5, 1.4, 5), CFrame = CFrame.new(pos.X, y + 0.3, pos.Z), Material = M.Concrete, Color = rgb(150, 146, 136) })
+	ctx:Part({
+		Name = "Footing",
+		Parent = model,
+		Size = Vector3.new(5, 1.4, 5),
+		CFrame = CFrame.new(pos.X, y + 0.3, pos.Z),
+		Material = M.Concrete,
+		Color = rgb(150, 146, 136),
+	})
 	for i = 0, 2 do
 		local a = i * math.pi * 2 / 3 + 0.4
 		local gx, gz = pos.X + math.cos(a) * height * 0.45, pos.Z + math.sin(a) * height * 0.45
@@ -681,7 +755,14 @@ function Pacific.Build(parent: Folder, _def: any)
 		Mud = rgb(96, 80, 60),
 		Limestone = rgb(222, 218, 202),
 		Rock = rgb(170, 162, 142),
-	}, { color = rgb(38, 132, 146), transparency = 0.75, reflectance = 0.3, waveSize = 0.12, waveSpeed = 8, decoration = true })
+	}, {
+		color = rgb(38, 132, 146),
+		transparency = 0.75,
+		reflectance = 0.3,
+		waveSize = 0.12,
+		waveSpeed = 8,
+		decoration = true,
+	})
 
 	-------------------------------------------------------------------------------------------
 	-- 1. Terrain model
@@ -764,10 +845,24 @@ function Pacific.Build(parent: Folder, _def: any)
 	-------------------------------------------------------------------------------------------
 	-- 2. A: Red Beach — reef wrecks, log seawall, beach pillboxes
 	-------------------------------------------------------------------------------------------
-	for _, a in { { -1.25, -60 }, { -1.18, -30 }, { -1.36, -80 }, { -1.05, -40 }, { -0.95, -10 }, { -1.45, -20 }, { -0.85, -70 } } do
+	for _, a in
+		{
+			{ -1.25, -60 },
+			{ -1.18, -30 },
+			{ -1.36, -80 },
+			{ -1.05, -40 },
+			{ -0.95, -10 },
+			{ -1.45, -20 },
+			{ -0.85, -70 },
+		}
+	do
 		local p = coastPoint(a[1], a[2])
 		local y = math.max(ctx:GroundY(p.X, p.Z), -1.5)
-		amtrac(ctx, CFrame.new(p.X, y - 0.8, p.Z) * CFrame.Angles(0, math.rad(rng:NextNumber(-30, 30)), math.rad(rng:NextNumber(-10, 10))))
+		amtrac(
+			ctx,
+			CFrame.new(p.X, y - 0.8, p.Z)
+				* CFrame.Angles(0, math.rad(rng:NextNumber(-30, 30)), math.rad(rng:NextNumber(-10, 10)))
+		)
 	end
 	local SEAWALL = {}
 	for th = -1.55, -0.75, 0.05 do
@@ -806,14 +901,30 @@ function Pacific.Build(parent: Folder, _def: any)
 	for _ = 1, 16 do
 		local x, z = rng:NextNumber(-60, 300), rng:NextNumber(-600, -440)
 		if inland(x, z) > 20 and not nearRoad(x, z, 10) and not inClearing(x, z, -40) then
-			Terrain.Crater(ctx, V(x, z), rng:NextNumber(4, 7), { material = M.Sand, outerMaterial = M.Sand, rimMaterial = M.Sand })
+			Terrain.Crater(
+				ctx,
+				V(x, z),
+				rng:NextNumber(4, 7),
+				{ material = M.Sand, outerMaterial = M.Sand, rimMaterial = M.Sand }
+			)
 		end
 	end
 
 	-------------------------------------------------------------------------------------------
 	-- 3. B: Coconut Grove — plantation rows, coconut-log bunkers, Japanese trench line
 	-------------------------------------------------------------------------------------------
-	for _, seg in cutAtRoads({ V(-320, -186), V(-260, -190), V(-200, -196), V(-150, -190), V(-100, -186), V(-40, -196), V(20, -190), V(70, -182) }, 12) do
+	for _, seg in
+		cutAtRoads({
+			V(-320, -186),
+			V(-260, -190),
+			V(-200, -196),
+			V(-150, -190),
+			V(-100, -186),
+			V(-40, -196),
+			V(20, -190),
+			V(70, -182),
+		}, 12)
+	do
 		Fort.Trench(ctx, Layout.Zigzag(seg, 3.5, 12), { parapet = "left", sandbags = 0.15 })
 	end
 	Fort.LogBunker(ctx, at(-215, -262, 180), { width = 13 })
@@ -832,7 +943,12 @@ function Pacific.Build(parent: Folder, _def: any)
 		for j = 0, 6 do
 			local gx = -250 + i * 26 + rng:NextNumber(-3, 3)
 			local gz = -330 + j * 24 + rng:NextNumber(-3, 3)
-			if rng:NextNumber() < 0.82 and not nearRoad(gx, gz, 9) and not reserved(gx, gz) and (gx + 140) ^ 2 + (gz + 260) ^ 2 > 22 ^ 2 then
+			if
+				rng:NextNumber() < 0.82
+				and not nearRoad(gx, gz, 9)
+				and not reserved(gx, gz)
+				and (gx + 140) ^ 2 + (gz + 260) ^ 2 > 22 ^ 2
+			then
 				if rng:NextNumber() < 0.12 then
 					stumpPalm(ctx, gx, gz, grove)
 				else
@@ -858,7 +974,12 @@ function Pacific.Build(parent: Folder, _def: any)
 	for _, rv in { { -300, 30 }, { -200, 40 }, { 120, 52 }, { -230, -110 }, { -100, -100 } } do
 		local x, z = rv[1], rv[2]
 		local facing = if z > -30 then 1 else -1
-		Terrain.Berm(ctx, { V(x - 16, z), V(x - 16, z + facing * 18), V(x + 16, z + facing * 18), V(x + 16, z) }, 7, 4.5)
+		Terrain.Berm(
+			ctx,
+			{ V(x - 16, z), V(x - 16, z + facing * 18), V(x + 16, z + facing * 18), V(x + 16, z) },
+			7,
+			4.5
+		)
 	end
 	Fort.ATGun(ctx, at(-20, 20, 200), {})
 	Fort.ATGun(ctx, at(150, 36, 160), {})
@@ -880,9 +1001,21 @@ function Pacific.Build(parent: Folder, _def: any)
 	-------------------------------------------------------------------------------------------
 	local deckY = math.max(ctx:GroundY(244, 196), 2.6) + 0.8
 	pier(ctx, V(244, 196), V(330, 196), deckY, 9)
-	Buildings.Hut(ctx, at(200, 240, 180), { style = PACIFIC_STYLE, stilts = true, width = 16, depth = 10, name = "Warehouse" })
-	Buildings.Hut(ctx, at(196, 168, 0), { style = PACIFIC_STYLE, stilts = true, width = 14, depth = 10, name = "Warehouse" })
-	Buildings.Barn(ctx, at(160, 210, 90), { style = "Timber", width = 16, depth = 26, height = 11, ruin = 0.35, name = "Storehouse" })
+	Buildings.Hut(
+		ctx,
+		at(200, 240, 180),
+		{ style = PACIFIC_STYLE, stilts = true, width = 16, depth = 10, name = "Warehouse" }
+	)
+	Buildings.Hut(
+		ctx,
+		at(196, 168, 0),
+		{ style = PACIFIC_STYLE, stilts = true, width = 14, depth = 10, name = "Warehouse" }
+	)
+	Buildings.Barn(
+		ctx,
+		at(160, 210, 90),
+		{ style = "Timber", width = 16, depth = 26, height = 11, ruin = 0.35, name = "Storehouse" }
+	)
 	Buildings.Hut(ctx, at(206, 290, 200), { style = PACIFIC_STYLE, width = 12, depth = 9, ruin = 0.4 })
 	for _ = 1, 4 do
 		Props.BarrelGroup(ctx, at(rng:NextNumber(172, 190), rng:NextNumber(246, 262), 0))
@@ -898,8 +1031,23 @@ function Pacific.Build(parent: Folder, _def: any)
 	do
 		local cf = CFrame.new(300, -1.5, 230) * CFrame.Angles(0, math.rad(30), math.rad(-8))
 		local barge = ctx:Model("BargeWreck", props)
-		for _, b in { { Vector3.new(10, 1, 28), CFrame.new(0, 0.5, 0) }, { Vector3.new(0.8, 4.5, 28), CFrame.new(-4.6, 2.5, 0) }, { Vector3.new(0.8, 4.5, 28), CFrame.new(4.6, 2.5, 0) }, { Vector3.new(10, 5, 1), CFrame.new(0, 2.8, 13.5) } } do
-			ctx:Part({ Name = "Hull", Parent = barge, Size = b[1], CFrame = cf * b[2], Material = M.CorrodedMetal, Color = rgb(96, 88, 76), NoPenetration = true })
+		for _, b in
+			{
+				{ Vector3.new(10, 1, 28), CFrame.new(0, 0.5, 0) },
+				{ Vector3.new(0.8, 4.5, 28), CFrame.new(-4.6, 2.5, 0) },
+				{ Vector3.new(0.8, 4.5, 28), CFrame.new(4.6, 2.5, 0) },
+				{ Vector3.new(10, 5, 1), CFrame.new(0, 2.8, 13.5) },
+			}
+		do
+			ctx:Part({
+				Name = "Hull",
+				Parent = barge,
+				Size = b[1],
+				CFrame = cf * b[2],
+				Material = M.CorrodedMetal,
+				Color = rgb(96, 88, 76),
+				NoPenetration = true,
+			})
 		end
 	end
 	for _, b in { { 250, 150, 70 }, { 262, 290, 120 } } do
@@ -965,7 +1113,14 @@ function Pacific.Build(parent: Folder, _def: any)
 			local x = gx + rng:NextNumber(-0.45, 0.45) * SP
 			local z = gz + rng:NextNumber(-0.45, 0.45) * SP
 			local t = inland(x, z)
-			if t < 8 or inLagoon(x, z, 12) or onStrip(x, z, 16) or nearRoad(x, z, 9) or inClearing(x, z) or reserved(x, z) then
+			if
+				t < 8
+				or inLagoon(x, z, 12)
+				or onStrip(x, z, 16)
+				or nearRoad(x, z, 9)
+				or inClearing(x, z)
+				or reserved(x, z)
+			then
 				continue
 			end
 			local pm = jungleModel(x, z)

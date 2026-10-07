@@ -76,7 +76,16 @@ local ROADS = {
 	axis = { V(0, 436), V(-80, 448), V(-160, 470), V(-250, 495), V(-300, 530), V(-300, 640), V(-300, 820) },
 	east = { V(620, -820), V(470, -480), V(380, -300), V(390, -200), V(330, 20), V(230, 290), V(200, 400), V(60, 420) },
 	west = { V(-820, -330), V(-500, -380), V(-220, -440), V(-20, -480) },
-	westNorth = { V(-500, -380), V(-430, -240), V(-400, -60), V(-340, 200), V(-360, 420), V(-430, 540), V(-425, 690), V(-300, 745) },
+	westNorth = {
+		V(-500, -380),
+		V(-430, -240),
+		V(-400, -60),
+		V(-340, 200),
+		V(-360, 420),
+		V(-430, 540),
+		V(-425, 690),
+		V(-300, 745),
+	},
 	townEast = { V(-40, 70), V(80, 120), V(160, 190), V(230, 290) },
 	townWest = { V(-40, 70), V(-170, 60), V(-340, 200) },
 }
@@ -455,7 +464,11 @@ function Sicily.Build(parent: Folder, _def: any)
 		return Buildings.StoneHouse(ctx, ctx:GroundCF(x, z, yaw), o)
 	end
 	-- church on the north side of the piazza (bell tower = sniper perch)
-	Buildings.Church(ctx, ctx:GroundCF(-40, 132, 180), { width = 20, length = 40, towerH = 36, style = "Mediterranean", ruin = 0.15 })
+	Buildings.Church(
+		ctx,
+		ctx:GroundCF(-40, 132, 180),
+		{ width = 20, length = 40, towerH = 36, style = "Mediterranean", ruin = 0.15 }
+	)
 	Props.Fountain(ctx, ctx:GroundCF(-40, 70, 0), {})
 	-- piazza frontage (west, east, south) with alleys between
 	sh(-80, 52, -90, true)
@@ -517,12 +530,21 @@ function Sicily.Build(parent: Folder, _def: any)
 	Props.Wreck(ctx, ctx:GroundCF(40, -244, 80), { kind = "truck", burning = true })
 	Props.Wreck(ctx, ctx:GroundCF(150, -250, -60), { kind = "tank", noTurret = true })
 	Props.Cart(ctx, ctx:GroundCF(14, -228, 40), { broken = true })
-	Buildings.StoneHouse(ctx, ctx:GroundCF(130, -150, 0), { enterable = true, floors = 2, ruin = 0.35, name = "Casello" })
+	Buildings.StoneHouse(
+		ctx,
+		ctx:GroundCF(130, -150, 0),
+		{ enterable = true, floors = 2, ruin = 0.35, name = "Casello" }
+	)
 	for _ = 1, 10 do
 		local t = rng:NextNumber(0.05, 0.95)
 		local x, z = Geo.sample(riverPath, t * riverPath.length)
 		if math.abs(x - 80) > 40 then
-			Nature.Rock(ctx, V(x + rng:NextNumber(-12, 12), z + rng:NextNumber(-10, 10)), rng:NextNumber(3, 6), M.Limestone)
+			Nature.Rock(
+				ctx,
+				V(x + rng:NextNumber(-12, 12), z + rng:NextNumber(-10, 10)),
+				rng:NextNumber(3, 6),
+				M.Limestone
+			)
 		end
 	end
 	-- oleander scrub along the banks
@@ -542,10 +564,22 @@ function Sicily.Build(parent: Folder, _def: any)
 	-------------------------------------------------------------------------------------------
 	-- 4. A: Masseria — fortified farm among the vineyards
 	-------------------------------------------------------------------------------------------
-	Buildings.Farmhouse(ctx, ctx:GroundCF(-240, -420, 180), { style = "Mediterranean", enterable = true, ruin = 0.2, name = "Masseria" })
-	Buildings.Barn(ctx, ctx:GroundCF(-180, -400, 90), { style = "Mediterranean", width = 14, depth = 24, height = 10, ruin = 0.3 })
+	Buildings.Farmhouse(
+		ctx,
+		ctx:GroundCF(-240, -420, 180),
+		{ style = "Mediterranean", enterable = true, ruin = 0.2, name = "Masseria" }
+	)
+	Buildings.Barn(
+		ctx,
+		ctx:GroundCF(-180, -400, 90),
+		{ style = "Mediterranean", width = 14, depth = 24, height = 10, ruin = 0.3 }
+	)
 	Buildings.Shed(ctx, ctx:GroundCF(-276, -460, 90), { style = "Mediterranean" })
-	Props.StoneWall(ctx, { V(-290, -470), V(-290, -385), V(-150, -380), V(-148, -470), V(-200, -476) }, { height = 3, gapChance = 0.12, material = M.Sandstone })
+	Props.StoneWall(
+		ctx,
+		{ V(-290, -470), V(-290, -385), V(-150, -380), V(-148, -470), V(-200, -476) },
+		{ height = 3, gapChance = 0.12, material = M.Sandstone }
+	)
 	Props.Well(ctx, ctx:GroundCF(-214, -446, 0))
 	Props.Cart(ctx, ctx:GroundCF(-200, -456, 70), {})
 	Props.HayBales(ctx, ctx:GroundCF(-262, -400, 0))
@@ -554,7 +588,17 @@ function Sicily.Build(parent: Folder, _def: any)
 	Props.AmmoCache(ctx, ctx:GroundCF(-236, -452, 0))
 	Props.Wreck(ctx, ctx:GroundCF(-130, -500, 30), { kind = "halftrack" })
 	local vines = ctx:Model("Vineyards", nature)
-	for _, v in { { -380, -460, 4, 120, 80 }, { -380, -340, -3, 110, 70 }, { -80, -390, 6, 90, 70 }, { 230, -420, -5, 140, 90 }, { 250, -560, 2, 140, 70 }, { -460, -580, 3, 120, 80 }, { 520, -360, 10, 100, 80 } } do
+	for _, v in
+		{
+			{ -380, -460, 4, 120, 80 },
+			{ -380, -340, -3, 110, 70 },
+			{ -80, -390, 6, 90, 70 },
+			{ 230, -420, -5, 140, 90 },
+			{ 250, -560, 2, 140, 70 },
+			{ -460, -580, 3, 120, 80 },
+			{ 520, -360, 10, 100, 80 },
+		}
+	do
 		if not nearRoad(v[1], v[2], 30) then
 			vineyard(ctx, ctx:GroundCF(v[1], v[2], v[3]), v[4], v[5], vines)
 		end
@@ -566,8 +610,16 @@ function Sicily.Build(parent: Folder, _def: any)
 	-- 5. D: Uliveto — olive terraces and farmhouse
 	-------------------------------------------------------------------------------------------
 	Buildings.Farmhouse(ctx, ctx:GroundCF(262, 318, 200), { style = "Mediterranean", enterable = true, ruin = 0.25 })
-	Buildings.Barn(ctx, ctx:GroundCF(200, 330, 110), { style = "Mediterranean", width = 13, depth = 22, height = 9, ruin = 0.5 })
-	Props.StoneWall(ctx, { V(180, 270), V(200, 360), V(290, 360), V(300, 280) }, { height = 2.8, gapChance = 0.2, material = M.Sandstone })
+	Buildings.Barn(
+		ctx,
+		ctx:GroundCF(200, 330, 110),
+		{ style = "Mediterranean", width = 13, depth = 22, height = 9, ruin = 0.5 }
+	)
+	Props.StoneWall(
+		ctx,
+		{ V(180, 270), V(200, 360), V(290, 360), V(300, 280) },
+		{ height = 2.8, gapChance = 0.2, material = M.Sandstone }
+	)
 	Props.Well(ctx, ctx:GroundCF(236, 312, 0))
 	Props.Cart(ctx, ctx:GroundCF(250, 278, 120), { broken = true })
 	Fort.MGNest(ctx, ctx:GroundCF(222, 262, 180), {})
@@ -581,7 +633,12 @@ function Sicily.Build(parent: Folder, _def: any)
 		for gx = g[1] - g[3] / 2, g[1] + g[3] / 2, 17 do
 			for gz = g[2] - g[4] / 2, g[2] + g[4] / 2, 16 do
 				local x, z = gx + rng:NextNumber(-4, 4), gz + rng:NextNumber(-4, 4)
-				if rng:NextNumber() < 0.7 and not nearRoad(x, z, 10) and not excluded(x, z) and not inRiverbed(x, z) then
+				if
+					rng:NextNumber() < 0.7
+					and not nearRoad(x, z, 10)
+					and not excluded(x, z)
+					and not inRiverbed(x, z)
+				then
 					olive(ctx, x, z, rng:NextNumber(0.8, 1.15), grove)
 				end
 			end
@@ -619,10 +676,22 @@ function Sicily.Build(parent: Folder, _def: any)
 			local ux, uz = (bx - ax) / len, (bz - az) / len
 			for _, sgn in { -1, 1 } do
 				local px, pz = mx + ux * sgn * (len / 4 + 4), mz + uz * sgn * (len / 4 + 4)
-				Buildings.RuinedWall(ctx, ctx:GroundCF(px, pz, yaw), len / 2 - 8, 11, { style = castleStyle, windows = false, ruin = 0.45, parent = castle, thickness = 2.5 })
+				Buildings.RuinedWall(
+					ctx,
+					ctx:GroundCF(px, pz, yaw),
+					len / 2 - 8,
+					11,
+					{ style = castleStyle, windows = false, ruin = 0.45, parent = castle, thickness = 2.5 }
+				)
 			end
 		else
-			Buildings.RuinedWall(ctx, ctx:GroundCF(mx, mz, yaw), len, rng:NextNumber(9, 14), { style = castleStyle, windows = false, ruin = rng:NextNumber(0.35, 0.7), parent = castle, thickness = 2.5 })
+			Buildings.RuinedWall(ctx, ctx:GroundCF(mx, mz, yaw), len, rng:NextNumber(9, 14), {
+				style = castleStyle,
+				windows = false,
+				ruin = rng:NextNumber(0.35, 0.7),
+				parent = castle,
+				thickness = 2.5,
+			})
 		end
 	end
 	-- keep: a hollow ruined tower (walls with windows) and two corner tower stumps
@@ -631,7 +700,13 @@ function Sicily.Build(parent: Folder, _def: any)
 		local rot = CFrame.Angles(0, k * math.pi / 2, 0)
 		local wcf = keep * rot * CFrame.new(0, 0, -9)
 		local p = wcf.Position
-		Buildings.RuinedWall(ctx, ctx:GroundCF(p.X, p.Z, math.deg(k * math.pi / 2)), 18, if k == 2 then 12 else 26, { style = castleStyle, ruin = 0.35, parent = castle, thickness = 2 })
+		Buildings.RuinedWall(
+			ctx,
+			ctx:GroundCF(p.X, p.Z, math.deg(k * math.pi / 2)),
+			18,
+			if k == 2 then 12 else 26,
+			{ style = castleStyle, ruin = 0.35, parent = castle, thickness = 2 }
+		)
 	end
 	for _, t in { { -46, -34 }, { 50, 20 } } do
 		local tx, tz = cx + t[1], cz + t[2]
@@ -657,8 +732,16 @@ function Sicily.Build(parent: Folder, _def: any)
 	Props.AmmoCache(ctx, ctx:GroundCF(cx - 12, cz + 30, 0))
 	Props.CrateStack(ctx, ctx:GroundCF(cx + 24, cz + 30, 0))
 	-- outer defences on the castle hill
-	Fort.Trench(ctx, Layout.Zigzag({ V(-140, 420), V(-90, 405), V(-40, 412) }, 3, 12), { parapet = "left", sandbags = 0.2 })
-	Fort.Trench(ctx, Layout.Zigzag({ V(90, 420), V(150, 412), V(200, 425) }, 3, 12), { parapet = "left", sandbags = 0.2 })
+	Fort.Trench(
+		ctx,
+		Layout.Zigzag({ V(-140, 420), V(-90, 405), V(-40, 412) }, 3, 12),
+		{ parapet = "left", sandbags = 0.2 }
+	)
+	Fort.Trench(
+		ctx,
+		Layout.Zigzag({ V(90, 420), V(150, 412), V(200, 425) }, 3, 12),
+		{ parapet = "left", sandbags = 0.2 }
+	)
 	Fort.Bunker(ctx, ctx:GroundCF(-120, 440, -15), { width = 12, depth = 10, slits = 2 })
 	Fort.Bunker(ctx, ctx:GroundCF(170, 450, 20), { width = 12, depth = 10, slits = 2 })
 	Fort.BarbedWire(ctx, { V(-170, 380), V(-90, 372), V(-20, 380) }, { spacing = 12 })
@@ -677,8 +760,21 @@ function Sicily.Build(parent: Folder, _def: any)
 	Buildings.StoneHouse(ctx, ctx:GroundCF(470, 420, 180), { enterable = false })
 	-- Borgo San Vito: a roadside hamlet on the western route
 	local borgo = ctx:Model("Borgo", ctx:Folder("Buildings"))
-	for _, h in { { -432, -120, 90, true }, { -450, -158, 90, false }, { -452, -84, 90, true }, { -380, -146, -90, true }, { -374, -92, -90, false }, { -470, -40, 0, false } } do
-		Buildings.StoneHouse(ctx, ctx:GroundCF(h[1], h[2], h[3]), { enterable = h[4], floors = if h[4] then 2 else 1, parent = borgo, ruin = rng:NextNumber(0, 0.4) })
+	for _, h in
+		{
+			{ -432, -120, 90, true },
+			{ -450, -158, 90, false },
+			{ -452, -84, 90, true },
+			{ -380, -146, -90, true },
+			{ -374, -92, -90, false },
+			{ -470, -40, 0, false },
+		}
+	do
+		Buildings.StoneHouse(
+			ctx,
+			ctx:GroundCF(h[1], h[2], h[3]),
+			{ enterable = h[4], floors = if h[4] then 2 else 1, parent = borgo, ruin = rng:NextNumber(0, 0.4) }
+		)
 	end
 	Props.Well(ctx, ctx:GroundCF(-396, -118, 0))
 	Props.Cart(ctx, ctx:GroundCF(-392, -60, 20), {})
@@ -686,8 +782,16 @@ function Sicily.Build(parent: Folder, _def: any)
 	Fort.MGNest(ctx, ctx:GroundCF(-440, -196, 180), {})
 	Props.Signpost(ctx, ctx:GroundCF(-396, -190, 0))
 	Buildings.Barn(ctx, ctx:GroundCF(-500, 260, 0), { style = "Mediterranean", width = 12, depth = 20, height = 9 })
-	Props.StoneWall(ctx, { V(-560, 180), V(-400, 190), V(-390, 300) }, { height = 2.6, gapChance = 0.15, material = M.Sandstone })
-	Props.StoneWall(ctx, { V(440, 60), V(600, 70), V(610, 200) }, { height = 2.6, gapChance = 0.15, material = M.Sandstone })
+	Props.StoneWall(
+		ctx,
+		{ V(-560, 180), V(-400, 190), V(-390, 300) },
+		{ height = 2.6, gapChance = 0.15, material = M.Sandstone }
+	)
+	Props.StoneWall(
+		ctx,
+		{ V(440, 60), V(600, 70), V(610, 200) },
+		{ height = 2.6, gapChance = 0.15, material = M.Sandstone }
+	)
 	Props.StoneWall(ctx, { V(30, -360), V(200, -350) }, { height = 2.6, gapChance = 0.2, material = M.Sandstone })
 	Props.StoneWall(ctx, { V(-150, -320), V(-20, -330) }, { height = 2.6, gapChance = 0.2, material = M.Sandstone })
 	-- cypress rows along the main road below the town and the castle road
@@ -730,7 +834,12 @@ function Sicily.Build(parent: Folder, _def: any)
 	})
 	for _ = 1, 70 do
 		local x, z = rng:NextNumber(-740, 740), rng:NextNumber(-720, 720)
-		if not excluded(x, z) and not nearRoad(x, z, 10) and not inTerraces(x, z) and (Geo.distToPath(riverPath, x, z)) > 30 then
+		if
+			not excluded(x, z)
+			and not nearRoad(x, z, 10)
+			and not inTerraces(x, z)
+			and (Geo.distToPath(riverPath, x, z)) > 30
+		then
 			if rng:NextNumber() < 0.75 then
 				Nature.Bush(ctx, V(x, z), rng:NextNumber(4, 7), nature)
 			else
@@ -744,7 +853,12 @@ function Sicily.Build(parent: Folder, _def: any)
 			break
 		end
 		local x, z = rng:NextNumber(-620, 620), rng:NextNumber(-560, 460)
-		if not excluded(x, z) and not nearRoad(x, z, 12) and not inTerraces(x, z) and (Geo.distToPath(riverPath, x, z)) > 36 then
+		if
+			not excluded(x, z)
+			and not nearRoad(x, z, 12)
+			and not inTerraces(x, z)
+			and (Geo.distToPath(riverPath, x, z)) > 36
+		then
 			craters += 1
 			Terrain.Crater(ctx, V(x, z), rng:NextNumber(4, 8), { material = M.Ground, outerMaterial = M.Ground })
 		end
