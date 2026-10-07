@@ -73,7 +73,8 @@ local ROADS = {
 	main = {
 		V(80, -800),
 		V(80, -600),
-		V(50, -470),
+		V(140, -560),
+		V(110, -470),
 		V(110, -330),
 		V(100, -160),
 		V(10, -40),
@@ -391,6 +392,95 @@ local function waterWheel(ctx: any, cf: CFrame, parent: Instance)
 	return model
 end
 
+--[[
+	Road with a smoothed, grade-limited longitudinal profile (cut and fill). hm:Road follows the
+	terrain lengthwise, which leaves steep ramps where a road climbs onto a flattened site; this
+	samples the terrain along the path, smooths it, clamps the grade to `maxGrade` and levels the
+	cross-section to that profile. Water crossings (and points where `skip(x, z)` is true, e.g. a
+	dry riverbed under a bridge) are bridged in the profile and left uncut.
+]]
+local function gradedRoad(
+	hm: any,
+	points: { Vector3 },
+	width: number,
+	blend: number,
+	maxGrade: number,
+	skip: ((number, number) -> boolean)?
+)
+	local path = Geo.path(points)
+	local n = math.max(2, math.floor(path.length / 6) + 1)
+	local ds = path.length / (n - 1)
+	local hs: { number } = table.create(n, 0)
+	local wet: { boolean } = table.create(n, false)
+	for i = 1, n do
+		local x, z = Geo.sample(path, (i - 1) * ds)
+		hs[i] = hm:Get(x, z)
+		local w = hm:WaterAt(x, z)
+		wet[i] = (w ~= nil and w > hs[i] - 0.5) or (skip ~= nil and skip(x, z))
+	end
+	-- bridge wet runs at the higher bank level
+	local i = 1
+	while i <= n do
+		if wet[i] then
+			local j = i
+			while j < n and wet[j + 1] do
+				j += 1
+			end
+			local lo = if i > 1 then hs[i - 1] else hs[math.min(j + 1, n)]
+			local hi = if j < n then hs[j + 1] else lo
+			for k = i, j do
+				hs[k] = math.max(lo, hi)
+			end
+			i = j + 1
+		else
+			i += 1
+		end
+	end
+	-- smooth, then clamp the grade both ways
+	local sm: { number } = table.create(n, 0)
+	for k = 1, n do
+		local sum, cnt = 0, 0
+		for o = -3, 3 do
+			local q = k + o
+			if q >= 1 and q <= n then
+				sum += hs[q]
+				cnt += 1
+			end
+		end
+		sm[k] = sum / cnt
+	end
+	-- pin ~18 studs at each end so roads meeting at a junction share its height
+	for k = 1, math.min(4, n) do
+		sm[k] = hs[1]
+		sm[n + 1 - k] = hs[n]
+	end
+	local lim = maxGrade * ds
+	for _ = 1, 2 do
+		for k = 2, n do
+			sm[k] = math.clamp(sm[k], sm[k - 1] - lim, sm[k - 1] + lim)
+		end
+		for k = n - 1, 1, -1 do
+			sm[k] = math.clamp(sm[k], sm[k + 1] - lim, sm[k + 1] + lim)
+		end
+	end
+	local half = width / 2
+	local reach = half + blend
+	hm:Custom(function(x, z, h)
+		local d, _, _, a = Geo.distToPath(path, x, z)
+		if d >= reach then
+			return h
+		end
+		local w = hm:WaterAt(x, z)
+		if (w ~= nil and w > h) or (skip ~= nil and skip(x, z)) then
+			return h
+		end
+		local f = math.clamp(a / ds + 1, 1, n)
+		local i0 = math.min(math.floor(f), n - 1)
+		local surface = Geo.lerp(sm[i0], sm[i0 + 1], f - i0)
+		return Geo.lerp(surface, h, Geo.smoothstep(half, reach, d))
+	end, { path.minX - reach, path.maxX + reach, path.minZ - reach, path.maxZ + reach })
+end
+
 -- Builder ---------------------------------------------------------------------------------------------
 
 function Ardennes.Build(parent: Folder, _def: any)
@@ -448,9 +538,9 @@ function Ardennes.Build(parent: Folder, _def: any)
 	Layout.PrepareHQ(hm, HQ_AXIS)
 	hm:Ridge({ V(-380, 562), V(-200, 568), V(-30, 560) }, 64, 14) -- reverse-slope rise in front of the Axis HQ
 	for name, r in ROADS do
-		hm:Road(r, if MAIN_TRACKS[name] then 12 else 7, 8)
+		gradedRoad(hm, r, if MAIN_TRACKS[name] then 12 else 7, 8, if MAIN_TRACKS[name] then 0.15 else 0.25)
 	end
-	hm:Flatten(420, 158, 12, 1.4, 10) -- the ford on the eastern track
+	hm:Flatten(420, 158, 12, 1.4, 22) -- the ford on the eastern track
 
 	local mm = Terrain.MaterialModel({ base = M.Snow, subsurface = M.Ground, seed = SEED })
 	mm:Patches(M.Glacier, 70, 0.55)

@@ -87,9 +87,9 @@ local HQ_AXIS = CFrame.new(-180, 0, 560) -- faces south (-Z)
 local AIRSTRIP = { a = V(-480, -60), b = V(220, 10), width = 44 }
 
 local ROADS = {
-	main = { V(-150, -560), V(-120, -450), V(-140, -260), V(-60, -100), V(20, 10), V(40, 120), V(90, 300), V(100, 440), V(-40, 500), V(-180, 520) },
+	main = { V(-150, -560), V(-120, -450), V(-140, -260), V(-60, -100), V(20, 10), V(70, 40), V(90, 130), V(90, 300), V(100, 440), V(-40, 500), V(-180, 520) },
 	beach = { V(-520, -520), V(-300, -555), V(-150, -560), V(80, -520), V(320, -470), V(480, -400) },
-	lagoon = { V(40, 120), V(150, 130), V(230, 210), V(260, 360), V(100, 440) },
+	lagoon = { V(90, 130), V(150, 140), V(230, 210), V(260, 360), V(100, 440) },
 	west = { V(-140, -260), V(-380, -140), V(-500, -60), V(-470, 160), V(-330, 400), V(-180, 520) },
 }
 
@@ -109,7 +109,7 @@ local CLEARINGS = {
 	{ -140, -260, 50 },
 	{ 20, 60, 80 },
 	{ 200, 205, 70 },
-	{ 100, 440, 60 },
+	{ 110, 460, 170 }, -- Radio Hill: cleared fields of fire
 }
 
 local PACIFIC_STYLE: any = nil
@@ -145,6 +145,39 @@ local function inClearing(x: number, z: number, pad: number?): boolean
 		end
 	end
 	return false
+end
+
+-- Footprints of placed structures (the jungle pass keeps trees out of them)
+local RESERVED: { { number } } = {}
+local function reserve(x: number, z: number, r: number)
+	table.insert(RESERVED, { x, z, r })
+end
+local function reserved(x: number, z: number): boolean
+	for _, c in RESERVED do
+		if (x - c[1]) ^ 2 + (z - c[2]) ^ 2 < c[3] * c[3] then
+			return true
+		end
+	end
+	return false
+end
+
+-- Split a polyline where it crosses a road (trenches must not cut the tracks).
+local function cutAtRoads(points: { Vector3 }, margin: number): { { Vector3 } }
+	local out, cur = {}, {}
+	for _, p in points do
+		if nearRoad(p.X, p.Z, margin) then
+			if #cur >= 2 then
+				table.insert(out, cur)
+			end
+			cur = {}
+		else
+			table.insert(cur, p)
+		end
+	end
+	if #cur >= 2 then
+		table.insert(out, cur)
+	end
+	return out
 end
 
 -- Remove objective spawns in the sea/lagoon; top up from dry ground around the point.
@@ -529,12 +562,106 @@ local function radioMast(ctx: any, pos: Vector3, height: number)
 	return model
 end
 
+--[[
+	Road with a smoothed, grade-limited longitudinal profile (cut and fill). hm:Road follows the
+	terrain lengthwise, which leaves steep ramps where a road climbs onto a flattened site; this
+	samples the terrain along the path, smooths it, clamps the grade to `maxGrade` and levels the
+	cross-section to that profile. Water crossings (and points where `skip(x, z)` is true, e.g. a
+	dry riverbed under a bridge) are bridged in the profile and left uncut.
+]]
+local function gradedRoad(
+	hm: any,
+	points: { Vector3 },
+	width: number,
+	blend: number,
+	maxGrade: number,
+	skip: ((number, number) -> boolean)?
+)
+	local path = Geo.path(points)
+	local n = math.max(2, math.floor(path.length / 6) + 1)
+	local ds = path.length / (n - 1)
+	local hs: { number } = table.create(n, 0)
+	local wet: { boolean } = table.create(n, false)
+	for i = 1, n do
+		local x, z = Geo.sample(path, (i - 1) * ds)
+		hs[i] = hm:Get(x, z)
+		local w = hm:WaterAt(x, z)
+		wet[i] = (w ~= nil and w > hs[i] - 0.5) or (skip ~= nil and skip(x, z))
+	end
+	-- bridge wet runs at the higher bank level
+	local i = 1
+	while i <= n do
+		if wet[i] then
+			local j = i
+			while j < n and wet[j + 1] do
+				j += 1
+			end
+			local lo = if i > 1 then hs[i - 1] else hs[math.min(j + 1, n)]
+			local hi = if j < n then hs[j + 1] else lo
+			for k = i, j do
+				hs[k] = math.max(lo, hi)
+			end
+			i = j + 1
+		else
+			i += 1
+		end
+	end
+	-- smooth, then clamp the grade both ways
+	local sm: { number } = table.create(n, 0)
+	for k = 1, n do
+		local sum, cnt = 0, 0
+		for o = -3, 3 do
+			local q = k + o
+			if q >= 1 and q <= n then
+				sum += hs[q]
+				cnt += 1
+			end
+		end
+		sm[k] = sum / cnt
+	end
+	-- pin ~18 studs at each end so roads meeting at a junction share its height
+	for k = 1, math.min(4, n) do
+		sm[k] = hs[1]
+		sm[n + 1 - k] = hs[n]
+	end
+	local lim = maxGrade * ds
+	for _ = 1, 2 do
+		for k = 2, n do
+			sm[k] = math.clamp(sm[k], sm[k - 1] - lim, sm[k - 1] + lim)
+		end
+		for k = n - 1, 1, -1 do
+			sm[k] = math.clamp(sm[k], sm[k + 1] - lim, sm[k + 1] + lim)
+		end
+	end
+	local half = width / 2
+	local reach = half + blend
+	hm:Custom(function(x, z, h)
+		local d, _, _, a = Geo.distToPath(path, x, z)
+		if d >= reach then
+			return h
+		end
+		local w = hm:WaterAt(x, z)
+		if (w ~= nil and w > h) or (skip ~= nil and skip(x, z)) then
+			return h
+		end
+		local f = math.clamp(a / ds + 1, 1, n)
+		local i0 = math.min(math.floor(f), n - 1)
+		local surface = Geo.lerp(sm[i0], sm[i0 + 1], f - i0)
+		return Geo.lerp(surface, h, Geo.smoothstep(half, reach, d))
+	end, { path.minX - reach, path.maxX + reach, path.minZ - reach, path.maxZ + reach })
+end
+
 -- Builder ---------------------------------------------------------------------------------------------
 
 function Pacific.Build(parent: Folder, _def: any)
 	local ctx = MapKit.new(parent, { seed = SEED })
 	local rng = ctx.rng
 	table.clear(preparedRoads)
+	table.clear(RESERVED)
+	local function at(x: number, z: number, yaw: number?): CFrame
+		reserve(x, z, 10)
+		return ctx:GroundCF(x, z, yaw)
+	end
 	for _, r in ROADS do
 		table.insert(preparedRoads, Geo.path(r))
 	end
@@ -578,7 +705,7 @@ function Pacific.Build(parent: Folder, _def: any)
 	end, { LAGOON.x - 260, LAGOON.x + 260, LAGOON.z - 260, LAGOON.z + 260 })
 	hm:Channel({ V(520, 240), V(640, 280), V(800, 300) }, 26, 9, 20, "U")
 	-- airstrip: level coral runway with a slight embankment
-	hm:Road({ AIRSTRIP.a, AIRSTRIP.b }, AIRSTRIP.width + 8, 30)
+	gradedRoad(hm, { AIRSTRIP.a, AIRSTRIP.b }, AIRSTRIP.width + 8, 30, 0.03)
 	hm:Flatten(20, 70, 70, nil, 30)
 	hm:Flatten(200, 205, 50, nil, 20)
 	hm:Flatten(100, 440, 50, nil, 25)
@@ -591,7 +718,7 @@ function Pacific.Build(parent: Folder, _def: any)
 	hm:Ridge({ V(-20, -660), V(-25, -580), V(-50, -520) }, 40, 12)
 	hm:Ridge({ V(-240, -500), V(-150, -486), V(-60, -500) }, 40, 9)
 	for _, r in ROADS do
-		hm:Road(r, 11, 8)
+		gradedRoad(hm, r, 11, 8, 0.15)
 	end
 	hm:Sea(0)
 
@@ -652,14 +779,14 @@ function Pacific.Build(parent: Folder, _def: any)
 		local p = coastPoint(th, 82)
 		local face = math.deg(math.atan2(-(p.X - ISLAND_CX), -(p.Z - ISLAND_CZ)))
 		if i % 2 == 1 then
-			Fort.Bunker(ctx, ctx:GroundCF(p.X, p.Z, face + 180), { width = 14, depth = 11, slits = 2 })
+			Fort.Bunker(ctx, at(p.X, p.Z, face + 180), { width = 14, depth = 11, slits = 2 })
 		else
-			Fort.LogBunker(ctx, ctx:GroundCF(p.X, p.Z, face + 180), { width = 13 })
+			Fort.LogBunker(ctx, at(p.X, p.Z, face + 180), { width = 13 })
 		end
 	end
 	for _, th in { -1.3, -1.12, -0.95 } do
 		local p = coastPoint(th, 70)
-		Fort.MGNest(ctx, ctx:GroundCF(p.X, p.Z, math.deg(math.atan2(-(p.X - ISLAND_CX), -(p.Z - ISLAND_CZ))) + 180), {})
+		Fort.MGNest(ctx, at(p.X, p.Z, math.deg(math.atan2(-(p.X - ISLAND_CX), -(p.Z - ISLAND_CZ))) + 180), {})
 	end
 	local wireTh = {}
 	for th = -1.3, -0.8, 0.06 do
@@ -672,10 +799,10 @@ function Pacific.Build(parent: Folder, _def: any)
 			Fort.DragonTooth(ctx, p, rng:NextNumber(2.6, 3.4), fortFolder)
 		end
 	end
-	Props.Wreck(ctx, ctx:GroundCF(40, -548, 30), { kind = "tank", burning = true })
-	Props.CrateStack(ctx, ctx:GroundCF(96, -540, 0))
-	Props.BarrelGroup(ctx, ctx:GroundCF(60, -500, 0))
-	Fort.Sandbags(ctx, ctx:GroundCF(80, -495, 180), { length = 10, arc = 50 })
+	Props.Wreck(ctx, at(40, -548, 30), { kind = "tank", burning = true })
+	Props.CrateStack(ctx, at(96, -540, 0))
+	Props.BarrelGroup(ctx, at(60, -500, 0))
+	Fort.Sandbags(ctx, at(80, -495, 180), { length = 10, arc = 50 })
 	for _ = 1, 16 do
 		local x, z = rng:NextNumber(-60, 300), rng:NextNumber(-600, -440)
 		if inland(x, z) > 20 and not nearRoad(x, z, 10) and not inClearing(x, z, -40) then
@@ -686,12 +813,26 @@ function Pacific.Build(parent: Folder, _def: any)
 	-------------------------------------------------------------------------------------------
 	-- 3. B: Coconut Grove — plantation rows, coconut-log bunkers, Japanese trench line
 	-------------------------------------------------------------------------------------------
+	for _, seg in cutAtRoads({ V(-320, -186), V(-260, -190), V(-200, -196), V(-150, -190), V(-100, -186), V(-40, -196), V(20, -190), V(70, -182) }, 12) do
+		Fort.Trench(ctx, Layout.Zigzag(seg, 3.5, 12), { parapet = "left", sandbags = 0.15 })
+	end
+	Fort.LogBunker(ctx, at(-215, -262, 180), { width = 13 })
+	Fort.LogBunker(ctx, at(-60, -250, 180), { width = 12 })
+	Fort.Bunker(ctx, at(-180, -320, 180), { width = 12, depth = 10, slits = 2 })
+	Fort.MGNest(ctx, at(-40, -224, 180), {})
+	Fort.MGNest(ctx, at(-240, -236, 170), {})
+	Fort.Sandbags(ctx, at(-160, -280, 180), { length = 9, arc = 60 })
+	Props.CrateStack(ctx, at(-118, -276, 0))
+	Props.Cart(ctx, at(-162, -296, 60), { broken = true })
+	Buildings.Hut(ctx, at(-210, -300, 90), { style = PACIFIC_STYLE, stilts = true, width = 12, depth = 9 })
+	Props.Wreck(ctx, at(-90, -370, 20), { kind = "tank" })
+
 	local grove = ctx:Model("CoconutGrove", nature)
 	for i = 0, 8 do
 		for j = 0, 6 do
 			local gx = -250 + i * 26 + rng:NextNumber(-3, 3)
 			local gz = -330 + j * 24 + rng:NextNumber(-3, 3)
-			if rng:NextNumber() < 0.82 and not nearRoad(gx, gz, 9) and (gx + 140) ^ 2 + (gz + 260) ^ 2 > 22 ^ 2 then
+			if rng:NextNumber() < 0.82 and not nearRoad(gx, gz, 9) and not reserved(gx, gz) and (gx + 140) ^ 2 + (gz + 260) ^ 2 > 22 ^ 2 then
 				if rng:NextNumber() < 0.12 then
 					stumpPalm(ctx, gx, gz, grove)
 				else
@@ -701,44 +842,32 @@ function Pacific.Build(parent: Folder, _def: any)
 		end
 	end
 	ctx:AddMinimap("forest", -146, -258, 230, 170, 0)
-	Fort.Trench(ctx, Layout.Zigzag({ V(-300, -200), V(-200, -205), V(-150, -198) }, 3.5, 12), { parapet = "left", sandbags = 0.15 })
-	Fort.Trench(ctx, Layout.Zigzag({ V(-110, -196), V(-20, -205), V(60, -190) }, 3.5, 12), { parapet = "left", sandbags = 0.15 })
-	Fort.LogBunker(ctx, ctx:GroundCF(-180, -230, 0), { width = 13 })
-	Fort.LogBunker(ctx, ctx:GroundCF(-90, -240, 10), { width = 12 })
-	Fort.Bunker(ctx, ctx:GroundCF(-136, -300, 0), { width = 12, depth = 10, slits = 2 })
-	Fort.MGNest(ctx, ctx:GroundCF(-40, -230, 0), {})
-	Fort.MGNest(ctx, ctx:GroundCF(-240, -240, -10), {})
-	Fort.Sandbags(ctx, ctx:GroundCF(-150, -268, 0), { length = 9, arc = 60 })
-	Props.CrateStack(ctx, ctx:GroundCF(-122, -276, 0))
-	Props.Cart(ctx, ctx:GroundCF(-160, -290, 60), { broken = true })
-	Buildings.Hut(ctx, ctx:GroundCF(-210, -300, 90), { style = PACIFIC_STYLE, stilts = true, width = 12, depth = 9 })
-	Props.Wreck(ctx, ctx:GroundCF(-120, -360, 20), { kind = "tank" })
-
 	-------------------------------------------------------------------------------------------
 	-- 4. C: Airfield — hangar, revetments, wrecked planes, AA guns, control tower
 	-------------------------------------------------------------------------------------------
-	hangar(ctx, ctx:GroundCF(20, 92, 0), 48, 36, 14)
-	Buildings.Hut(ctx, ctx:GroundCF(-50, 80, 0), { style = PACIFIC_STYLE, width = 14, depth = 10, name = "OpsHut" })
-	Fort.Watchtower(ctx, ctx:GroundCF(-70, 50, 0), { height = 14 })
-	planeWreck(ctx, ctx:GroundCF(18, 92, 170), false) -- in the hangar
-	planeWreck(ctx, ctx:GroundCF(-140, -28, 70), true)
-	planeWreck(ctx, ctx:GroundCF(120, 30, -20), true)
-	planeWreck(ctx, ctx:GroundCF(-300, 16, 160), false)
-	planeWreck(ctx, ctx:GroundCF(-260, -90, 20), true)
+	reserve(20, 92, 34)
+	hangar(ctx, at(20, 92, 0), 48, 36, 14)
+	Buildings.Hut(ctx, at(-50, 80, 0), { style = PACIFIC_STYLE, width = 14, depth = 10, name = "OpsHut" })
+	Fort.Watchtower(ctx, at(-70, 50, 0), { height = 14 })
+	planeWreck(ctx, at(18, 92, 170), false) -- in the hangar
+	planeWreck(ctx, at(-140, -28, 70), true)
+	planeWreck(ctx, at(120, 30, -20), true)
+	planeWreck(ctx, at(-300, 16, 160), false)
+	planeWreck(ctx, at(-260, -90, 20), true)
 	-- U-shaped earth revetments along the strip
 	for _, rv in { { -300, 30 }, { -200, 40 }, { 120, 52 }, { -230, -110 }, { -100, -100 } } do
 		local x, z = rv[1], rv[2]
-		local facing = if z > -30 then -1 else 1
+		local facing = if z > -30 then 1 else -1
 		Terrain.Berm(ctx, { V(x - 16, z), V(x - 16, z + facing * 18), V(x + 16, z + facing * 18), V(x + 16, z) }, 7, 4.5)
 	end
-	Fort.ATGun(ctx, ctx:GroundCF(-20, 20, 200), {})
-	Fort.ATGun(ctx, ctx:GroundCF(80, 70, 160), {})
-	Fort.Sandbags(ctx, ctx:GroundCF(40, 30, 180), { length = 10, arc = 80 })
-	Fort.Sandbags(ctx, ctx:GroundCF(-10, 52, 180), { length = 8, arc = 50 })
-	Props.BarrelGroup(ctx, ctx:GroundCF(54, 66, 0))
-	Props.BarrelGroup(ctx, ctx:GroundCF(-20, 74, 0))
-	Props.CrateStack(ctx, ctx:GroundCF(70, 100, 0))
-	Props.Wreck(ctx, ctx:GroundCF(-30, 6, 80), { kind = "truck", burning = true })
+	Fort.ATGun(ctx, at(-20, 20, 200), {})
+	Fort.ATGun(ctx, at(150, 36, 160), {})
+	Fort.Sandbags(ctx, at(0, 40, 180), { length = 10, arc = 80 })
+	Fort.Sandbags(ctx, at(-10, 52, 180), { length = 8, arc = 50 })
+	Props.BarrelGroup(ctx, at(54, 66, 0))
+	Props.BarrelGroup(ctx, at(-20, 74, 0))
+	Props.CrateStack(ctx, at(56, 116, 0))
+	Props.Wreck(ctx, at(-30, 6, 80), { kind = "truck", burning = true })
 	for _ = 1, 14 do
 		local t = rng:NextNumber(0.05, 0.95)
 		local x = Geo.lerp(AIRSTRIP.a.X, AIRSTRIP.b.X, t) + rng:NextNumber(-14, 14)
@@ -751,19 +880,19 @@ function Pacific.Build(parent: Folder, _def: any)
 	-------------------------------------------------------------------------------------------
 	local deckY = math.max(ctx:GroundY(244, 196), 2.6) + 0.8
 	pier(ctx, V(244, 196), V(330, 196), deckY, 9)
-	Buildings.Hut(ctx, ctx:GroundCF(200, 240, 180), { style = PACIFIC_STYLE, stilts = true, width = 16, depth = 10, name = "Warehouse" })
-	Buildings.Hut(ctx, ctx:GroundCF(196, 168, 0), { style = PACIFIC_STYLE, stilts = true, width = 14, depth = 10, name = "Warehouse" })
-	Buildings.Barn(ctx, ctx:GroundCF(160, 210, 90), { style = "Timber", width = 16, depth = 26, height = 11, ruin = 0.35, name = "Storehouse" })
-	Buildings.Hut(ctx, ctx:GroundCF(236, 268, 200), { style = PACIFIC_STYLE, width = 12, depth = 9, ruin = 0.4 })
+	Buildings.Hut(ctx, at(200, 240, 180), { style = PACIFIC_STYLE, stilts = true, width = 16, depth = 10, name = "Warehouse" })
+	Buildings.Hut(ctx, at(196, 168, 0), { style = PACIFIC_STYLE, stilts = true, width = 14, depth = 10, name = "Warehouse" })
+	Buildings.Barn(ctx, at(160, 210, 90), { style = "Timber", width = 16, depth = 26, height = 11, ruin = 0.35, name = "Storehouse" })
+	Buildings.Hut(ctx, at(206, 290, 200), { style = PACIFIC_STYLE, width = 12, depth = 9, ruin = 0.4 })
 	for _ = 1, 4 do
-		Props.BarrelGroup(ctx, ctx:GroundCF(rng:NextNumber(212, 236), rng:NextNumber(220, 236), 0))
+		Props.BarrelGroup(ctx, at(rng:NextNumber(172, 190), rng:NextNumber(246, 262), 0))
 	end
-	Props.CrateStack(ctx, ctx:GroundCF(226, 186, 0))
-	Props.CrateStack(ctx, ctx:GroundCF(290, 193, 0), { parent = props })
-	Props.Crate(ctx, ctx:GroundCF(305, 199, 0) + Vector3.new(0, deckY - ctx:GroundY(305, 199), 0))
-	Fort.Sandbags(ctx, ctx:GroundCF(250, 214, 90), { length = 8, arc = 40 })
-	Fort.MGNest(ctx, ctx:GroundCF(214, 150, 0), {})
-	Fort.LogBunker(ctx, ctx:GroundCF(270, 250, 0), { width = 12 })
+	Props.CrateStack(ctx, at(226, 186, 0))
+	Props.CrateStack(ctx, CFrame.new(290, deckY + 0.4, 192), { parent = props, snap = false })
+	Props.Crate(ctx, CFrame.new(306, deckY + 0.4, 199), { snap = false })
+	Fort.Sandbags(ctx, at(250, 214, 90), { length = 8, arc = 40 })
+	Fort.MGNest(ctx, at(214, 150, 0), {})
+	Fort.LogBunker(ctx, at(215, 320, 0), { width = 12 })
 	Props.Fire(ctx, V(214, 230), { size = 5 })
 	-- sunken barge off the pier and boats pulled up on the lagoon beach
 	do
@@ -778,7 +907,7 @@ function Pacific.Build(parent: Folder, _def: any)
 			Name = "Boat",
 			Parent = props,
 			Size = Vector3.new(4, 1.6, 14),
-			CFrame = ctx:GroundCF(b[1], b[2], b[3]) * CFrame.new(0, 0.6, 0) * CFrame.Angles(0, 0, math.rad(12)),
+			CFrame = at(b[1], b[2], b[3]) * CFrame.new(0, 0.6, 0) * CFrame.Angles(0, 0, math.rad(12)),
 			Material = M.WoodPlanks,
 			Color = rgb(110, 90, 66),
 		})
@@ -788,12 +917,12 @@ function Pacific.Build(parent: Folder, _def: any)
 	-- 6. E: Radio Hill — radio station, mast, pillboxes, trench rings
 	-------------------------------------------------------------------------------------------
 	radioMast(ctx, V(126, 470), 56)
-	Buildings.Hut(ctx, ctx:GroundCF(84, 470, 180), { style = "Brick", width = 16, depth = 11, height = 9, name = "RadioStation" })
-	Buildings.Hut(ctx, ctx:GroundCF(140, 432, 90), { style = PACIFIC_STYLE, width = 12, depth = 9, ruin = 0.3 })
-	Fort.Bunker(ctx, ctx:GroundCF(40, 400, -20), { width = 14, depth = 12, slits = 3 })
-	Fort.Bunker(ctx, ctx:GroundCF(170, 395, 20), { width = 14, depth = 12, slits = 3 })
-	Fort.LogBunker(ctx, ctx:GroundCF(220, 450, 60), { width = 12 })
-	Fort.LogBunker(ctx, ctx:GroundCF(-10, 470, -60), { width = 12 })
+	Buildings.Hut(ctx, at(84, 470, 180), { style = "Brick", width = 16, depth = 11, height = 9, name = "RadioStation" })
+	Buildings.Hut(ctx, at(140, 432, 90), { style = PACIFIC_STYLE, width = 12, depth = 9, ruin = 0.3 })
+	Fort.Bunker(ctx, at(40, 400, -20), { width = 14, depth = 12, slits = 3 })
+	Fort.Bunker(ctx, at(170, 395, 20), { width = 14, depth = 12, slits = 3 })
+	Fort.LogBunker(ctx, at(220, 450, 60), { width = 12 })
+	Fort.LogBunker(ctx, at(10, 508, -60), { width = 12 })
 	local ring1, ring2 = {}, {}
 	for a = 200, 340, 12 do
 		local r = math.rad(a)
@@ -803,35 +932,18 @@ function Pacific.Build(parent: Folder, _def: any)
 		local r = math.rad(a)
 		table.insert(ring2, V(110 + math.cos(r) * 160, 470 + math.sin(r) * 150))
 	end
-	local function cutAtRoads(points: { Vector3 }): { { Vector3 } }
-		local out, cur = {}, {}
-		for _, p in points do
-			if nearRoad(p.X, p.Z, 12) then
-				if #cur >= 2 then
-					table.insert(out, cur)
-				end
-				cur = {}
-			else
-				table.insert(cur, p)
-			end
-		end
-		if #cur >= 2 then
-			table.insert(out, cur)
-		end
-		return out
-	end
-	for _, seg in cutAtRoads(ring1) do
+	for _, seg in cutAtRoads(ring1, 12) do
 		Fort.Trench(ctx, seg, { parapet = "right", sandbags = 0.25, revetment = 0.6 })
 	end
-	for _, seg in cutAtRoads(ring2) do
+	for _, seg in cutAtRoads(ring2, 12) do
 		Fort.Trench(ctx, Layout.Zigzag(seg, 3, 12), { parapet = "right", sandbags = 0.1, revetment = 0.4 })
 	end
-	Fort.MGNest(ctx, ctx:GroundCF(70, 410, -10), {})
-	Fort.MGNest(ctx, ctx:GroundCF(150, 420, 15), {})
-	Fort.ATGun(ctx, ctx:GroundCF(100, 395, 0), {})
-	Props.AmmoCache(ctx, ctx:GroundCF(110, 456, 0))
-	Props.CrateStack(ctx, ctx:GroundCF(60, 450, 0))
-	Props.BarrelGroup(ctx, ctx:GroundCF(150, 470, 0))
+	Fort.MGNest(ctx, at(70, 410, -10), {})
+	Fort.MGNest(ctx, at(168, 452, 15), {})
+	Fort.ATGun(ctx, at(124, 404, 0), {})
+	Props.AmmoCache(ctx, at(110, 456, 0))
+	Props.CrateStack(ctx, at(60, 450, 0))
+	Props.BarrelGroup(ctx, at(150, 470, 0))
 	Fort.BarbedWire(ctx, { V(-30, 330), V(60, 300), V(160, 300), V(260, 340) }, { spacing = 12 })
 
 	-------------------------------------------------------------------------------------------
@@ -853,7 +965,7 @@ function Pacific.Build(parent: Folder, _def: any)
 			local x = gx + rng:NextNumber(-0.45, 0.45) * SP
 			local z = gz + rng:NextNumber(-0.45, 0.45) * SP
 			local t = inland(x, z)
-			if t < 8 or inLagoon(x, z, 12) or onStrip(x, z, 16) or nearRoad(x, z, 9) or inClearing(x, z) then
+			if t < 8 or inLagoon(x, z, 12) or onStrip(x, z, 16) or nearRoad(x, z, 9) or inClearing(x, z) or reserved(x, z) then
 				continue
 			end
 			local pm = jungleModel(x, z)
@@ -907,7 +1019,8 @@ function Pacific.Build(parent: Folder, _def: any)
 	-------------------------------------------------------------------------------------------
 	local alliesHQ = Layout.SpawnArea(ctx, HQ_ALLIES, "Allies", { spawnCount = 10, vehicleCount = 3 })
 	local axisHQ = Layout.SpawnArea(ctx, HQ_AXIS, "Axis", { spawnCount = 10, vehicleCount = 3 })
-	logWall(ctx, { V(-230, -520), V(-150, -512), V(-70, -520) })
+	logWall(ctx, { V(-230, -520), V(-160, -514) })
+	logWall(ctx, { V(-116, -514), V(-70, -520) })
 
 	local objectives = {}
 	for i, o in OBJECTIVES do

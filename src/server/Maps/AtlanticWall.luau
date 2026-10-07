@@ -422,6 +422,95 @@ local function casemate(ctx: any, cf: CFrame)
 	})
 end
 
+--[[
+	Road with a smoothed, grade-limited longitudinal profile (cut and fill). hm:Road follows the
+	terrain lengthwise, which leaves steep ramps where a road climbs onto a flattened site; this
+	samples the terrain along the path, smooths it, clamps the grade to `maxGrade` and levels the
+	cross-section to that profile. Water crossings (and points where `skip(x, z)` is true, e.g. a
+	dry riverbed under a bridge) are bridged in the profile and left uncut.
+]]
+local function gradedRoad(
+	hm: any,
+	points: { Vector3 },
+	width: number,
+	blend: number,
+	maxGrade: number,
+	skip: ((number, number) -> boolean)?
+)
+	local path = Geo.path(points)
+	local n = math.max(2, math.floor(path.length / 6) + 1)
+	local ds = path.length / (n - 1)
+	local hs: { number } = table.create(n, 0)
+	local wet: { boolean } = table.create(n, false)
+	for i = 1, n do
+		local x, z = Geo.sample(path, (i - 1) * ds)
+		hs[i] = hm:Get(x, z)
+		local w = hm:WaterAt(x, z)
+		wet[i] = (w ~= nil and w > hs[i] - 0.5) or (skip ~= nil and skip(x, z))
+	end
+	-- bridge wet runs at the higher bank level
+	local i = 1
+	while i <= n do
+		if wet[i] then
+			local j = i
+			while j < n and wet[j + 1] do
+				j += 1
+			end
+			local lo = if i > 1 then hs[i - 1] else hs[math.min(j + 1, n)]
+			local hi = if j < n then hs[j + 1] else lo
+			for k = i, j do
+				hs[k] = math.max(lo, hi)
+			end
+			i = j + 1
+		else
+			i += 1
+		end
+	end
+	-- smooth, then clamp the grade both ways
+	local sm: { number } = table.create(n, 0)
+	for k = 1, n do
+		local sum, cnt = 0, 0
+		for o = -3, 3 do
+			local q = k + o
+			if q >= 1 and q <= n then
+				sum += hs[q]
+				cnt += 1
+			end
+		end
+		sm[k] = sum / cnt
+	end
+	-- pin ~18 studs at each end so roads meeting at a junction share its height
+	for k = 1, math.min(4, n) do
+		sm[k] = hs[1]
+		sm[n + 1 - k] = hs[n]
+	end
+	local lim = maxGrade * ds
+	for _ = 1, 2 do
+		for k = 2, n do
+			sm[k] = math.clamp(sm[k], sm[k - 1] - lim, sm[k - 1] + lim)
+		end
+		for k = n - 1, 1, -1 do
+			sm[k] = math.clamp(sm[k], sm[k + 1] - lim, sm[k + 1] + lim)
+		end
+	end
+	local half = width / 2
+	local reach = half + blend
+	hm:Custom(function(x, z, h)
+		local d, _, _, a = Geo.distToPath(path, x, z)
+		if d >= reach then
+			return h
+		end
+		local w = hm:WaterAt(x, z)
+		if (w ~= nil and w > h) or (skip ~= nil and skip(x, z)) then
+			return h
+		end
+		local f = math.clamp(a / ds + 1, 1, n)
+		local i0 = math.min(math.floor(f), n - 1)
+		local surface = Geo.lerp(sm[i0], sm[i0 + 1], f - i0)
+		return Geo.lerp(surface, h, Geo.smoothstep(half, reach, d))
+	end, { path.minX - reach, path.maxX + reach, path.minZ - reach, path.maxZ + reach })
+end
+
 -- Builder ---------------------------------------------------------------------------------------------
 
 function AtlanticWall.Build(parent: Folder, _def: any)
@@ -494,10 +583,10 @@ function AtlanticWall.Build(parent: Folder, _def: any)
 	hm:Ridge({ V(334, 640), V(338, 500), V(290, 440) }, 40, 13)
 	for name, r in ROADS do
 		if name ~= "draw" then
-			hm:Road(r, if name == "coast" then 12 else 11, 8)
+			gradedRoad(hm, r, if name == "coast" then 12 else 11, 8, 0.15)
 		end
 	end
-	hm:Road(DRAW, 12, 6)
+	gradedRoad(hm, DRAW, 12, 6, 0.15)
 	hm:Road(SWITCHBACK, 6, 4)
 	hm:Sea(SEA_LEVEL)
 
