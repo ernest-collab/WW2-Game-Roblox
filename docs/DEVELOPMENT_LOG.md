@@ -54,6 +54,19 @@ where an armor rating was expected; they now carry a separate `armorPenetration`
 
 ## Phase 3: Cross-review
 Two fresh reviewers each re-audited one half of the game, server and client, including everything changed after the Testing pass.
+- **Server (3 fixes):**
+  - Shutdown now waits for all in-flight progression saves (prevents data loss).
+  - The purchase store never falls back to memory on a live server, so a purchase is never confirmed without being saved.
+  - The vehicle hit marker uses the damage actually applied.
+- **Client (7 fixes):**
+  - The death cam could leave players stuck without a deploy screen.
+  - Touch players had no vehicle controls; on-screen buttons and thumbstick driving were added.
+  - A gamepad couldn't deploy on first join.
+  - Gamepad B both closed a menu and crouched.
+  - Enter deployed while the store or settings was open.
+  - Settings opened behind the store.
+  - The "Killed in action" card never showed.
+- Known gaps (features, not bugs): no on-screen touch buttons for crouch, prone, sprint, gadgets or spotting; no gamepad shortcut to the store or settings while in game.
 
 ## What needs a human next
 1. **Playtest in Roblox Studio**, solo and then with Test → Clients and Servers. Check vehicle handling, animation poses, camera feel, map visuals and spawn placement.
